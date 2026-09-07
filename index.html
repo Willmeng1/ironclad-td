@@ -1,0 +1,34 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Ironclad TD (v3)</title><link rel="stylesheet" href="./styles.css?v=12"></head><body>
+<div id="landscapeGate"><span>Ironclad TD</span></div><main class="phone-shell"><div class="phone-speaker"></div><div class="app-screen">
+<section id="authScreen" class="screen auth-screen"><div class="auth-hero"><p>HOLD THE LINE</p><h1>IRONCLAD TD</h1><div class="auth-actions"><button id="showLogin">Log In</button><button id="showSignup" class="secondary">Create Account</button></div></div></section>
+<section id="home" class="screen home hidden"><button id="openSettings" class="settings-btn">⚙</button><nav class="home-nav"><button id="openInventory">🎒 <span>Inventory</span></button><button id="openDailyRewards">🎁 <span>Daily Rewards</span></button><button id="openExchange">⇄ <span>Exchange</span></button><button id="openMobIndex">📖 <span>Mob Index</span></button></nav><div class="hero-card"><small>HOLD THE LINE</small><h1>IRONCLAD TD</h1><button id="openLevels" class="play-btn">▶ PLAY</button></div><footer class="meta-bar"><span>💎 Gems <b id="gems">0</b></span><span>🪙 Coins <b id="metaCoins">0</b></span><span>⭐ Level <b id="playerLevel">1</b></span><div class="xp"><label>XP <b id="playerXp">0</b> / <b id="nextXp">120</b></label><i><em id="xpFill"></em></i></div></footer></section>
+<section id="game" class="screen game hidden"><header class="game-hud"><div class="stage-block"><b id="gameTitle">Stage 1</b><span id="waveText">Wave 0 / 10</span></div><div class="hud-items"><span>Coins <b id="coins">0</b></span><span>Base <b id="baseHp">25</b></span><span>Kills <b id="kills">0</b></span><span>Towers <b id="towerCount">0 / 15</b></span><button id="speedToggle">Speed: x1</button><button id="startWave" class="gold">Start Wave</button><button id="leaveMatch" class="danger">Leave</button></div></header><div id="bossBar" class="boss-bar hidden"><b id="bossName">Boss</b><span id="bossHpText"></span><i><em id="bossHpFill"></em></i></div><div id="waveBonus" class="wave-bonus"></div><div class="battle-layout"><aside><h2>Towers</h2><div id="battleLoadout"></div></aside><div class="map-wrap"><canvas id="gameCanvas" width="1000" height="650"></canvas></div><aside id="selectedInfo" class="selected-panel"><p>Select a tower or a placement card.</p><button id="upgradeTower">Upgrade</button><button id="sellTower" class="danger">Sell</button></aside></div><button id="backHome" class="hidden">Home</button></section>
+<div id="authModal" class="modal"><div class="modal-card auth-card"><button id="closeAuth" class="close">×</button><h2 id="authTitle">Log In</h2><input id="authUsername" placeholder="Username"><input id="authPassword" type="password" placeholder="Password"><button id="submitAuth">Continue</button><p id="authStatus"></p></div></div>
+<div id="levelModal" class="modal"><div class="modal-card"><header><h2 id="levelTitle">Choose a Stage</h2><button id="closeLevels">Close</button></header><div id="levelList" class="level-grid"></div></div></div>
+<div id="modeModal" class="modal"><div class="modal-card small"><button id="closeMode" class="close">×</button><h2>Choose Mode</h2><button id="soloMode">Solo</button><button id="multiplayerMode">Multiplayer</button></div></div>
+<div id="multiplayerModal" class="modal"><div class="modal-card small"><header><h2>Multiplayer</h2><button id="closeMultiplayer">Close</button></header><button id="createRoom">Create Room</button><form id="joinRoomForm"><input id="roomCodeInput" placeholder="Room code"><button>Join</button></form><div id="roomInfo"></div><button id="chooseMultiplayerMap">Choose Stage</button><button id="leaveRoom" class="danger">Leave Room</button><span id="connectionStatus"></span></div></div>
+<div id="inventoryModal" class="modal"><div class="modal-card inventory-card"><header><h2>Inventory</h2><button id="closeInventory">Close</button></header><h3>Equipped Towers</h3><div id="loadout" class="loadout"></div><div id="towerGrid" class="tower-grid"></div></div></div>
+<div id="dailyRewardsModal" class="modal"><div class="modal-card daily-card"><header><div><h2>Daily Rewards</h2><p id="dailyStatus"></p><b id="dailyCountdown"></b></div><button id="closeDailyRewards">Close</button></header><div id="dailyRewardsGrid" class="daily-grid"></div><button id="claimDailyReward" class="gold">Claim Reward</button></div></div>
+<div id="exchangeModal" class="modal"><div class="modal-card small"><header><h2>Exchange</h2><button id="closeExchange">Close</button></header><p>Gems: <b id="exchangeGems">0</b> · Coins: <b id="exchangeCoins">0</b></p><div><button id="exchangeGemsToCoins">Gems → Coins</button><button id="exchangeCoinsToGems">Coins → Gems</button></div><label id="exchangeAmountLabel">Amount</label><input id="exchangeAmount" type="number" min="1" value="1"><p id="exchangePreview"></p><button id="confirmExchange" class="gold">Exchange</button></div></div>
+<div id="mobIndexModal" class="modal"><div class="modal-card mob-card-shell"><header><div><h2>Mob Index</h2><span id="mobIndexCount">0 / 0 discovered</span></div><button id="closeMobIndex">Close</button></header><div id="mobIndexList"></div></div></div>
+<div id="settingsModal" class="modal"><div class="modal-card small"><header><h2>Settings</h2><button id="closeSettings">Close</button></header><button id="toggleSfx">Sound Effects <b>On</b></button><button id="toggleMusic">Music <b>On</b></button><button id="codeButton">Enter Code</button></div></div>
+<div id="codeModal" class="modal"><form id="codeForm" class="modal-card small"><button id="closeCode" type="button" class="close">×</button><h2>Enter Code</h2><input id="codeInput"><button>Redeem</button><p id="codeStatus"></p></form></div><div id="codeNoteModal" class="modal"><div class="modal-card small"><button id="closeCodeNote" class="close">×</button><p>A weathered note bears a mysterious code.</p></div></div>
+<div id="resultModal" class="result-modal"><div class="result-card"><h2 id="resultTitle">Lost</h2><div class="result-rewards"><span>Gems gained <b id="resultGems">0</b></span><span>Coins gained <b id="resultCoins">0</b></span><span>XP gained <b id="resultXp">0</b></span></div><p>Returning home in <b id="resultCountdown">5</b> seconds…</p></div></div><div id="toast" class="toast"></div>
+</div></main><script>
+  (() => {
+    const loadGame = () => {
+      const game = document.createElement("script");
+      game.src = "./game.js?v=13";
+      document.body.appendChild(game);
+    };
+    if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+      const socket = document.createElement("script");
+      socket.src = "/socket.io/socket.io.js";
+      socket.onload = loadGame;
+      socket.onerror = loadGame;
+      document.body.appendChild(socket);
+    } else {
+      loadGame();
+    }
+  })();
+</script></body></html>
