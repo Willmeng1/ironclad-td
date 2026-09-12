@@ -28,8 +28,8 @@ async function requestLandscapeMode() {
 if (isTouchDevice && !forceLaptopLayout) requestLandscapeMode();
 const ctx = canvas.getContext("2d");
 const MAX_TOWER_LEVEL = 5;
-const MAX_ACTIVE_SHOTS = 110;
-const MAX_ACTIVE_CHAIN_SHOTS = 30;
+const MAX_ACTIVE_SHOTS = 90;
+const MAX_ACTIVE_CHAIN_SHOTS = 12;
 const CHAIN_RANGE = 75;
 const CHAIN_RANGE_SQ = CHAIN_RANGE * CHAIN_RANGE;
 const MAX_SIM_STEP = 0.05;
@@ -76,6 +76,7 @@ const state = {
   gems: 15,
   unlocked: new Set(),
   clearedStages: new Set(),
+  stageStars: {},
   dailyRewards: {
     day: 1,
     lastClaimDate: null,
@@ -364,8 +365,8 @@ function createSoundSystem() {
 
   function attack(style = "basic") {
     const electric = ["lightning", "tesla", "chainLightning", "chainTesla"].includes(style);
-    const minDelay = style === "orbital" ? 0.16 : electric ? 0.14 : 0.045;
-    if (!canPlay(`attack-${style}`, minDelay)) return;
+    const minDelay = style === "orbital" ? 0.16 : electric ? 0.24 : 0.045;
+    if (!canPlay(`attack-${electric ? "electric" : style}`, minDelay)) return;
     const sounds = {
       arrow: () => {
         noise({ duration: 0.05, volume: 0.04, filter: 2800, type: "highpass" });
@@ -406,19 +407,15 @@ function createSoundSystem() {
         noise({ duration: 0.035, volume: 0.08, filter: 4200, type: "highpass", when: 0.135 });
       },
       lightning: () => {
-        sample({ src: samples.zap, duration: 0.68, rate: 1.42, volume: 0.62 });
         electricCrackle({ base: 760, volume: 0.035 });
       },
       tesla: () => {
-        sample({ src: samples.zap, duration: 0.82, rate: 1.28, volume: 0.72 });
         electricCrackle({ base: 1080, volume: 0.04, heavy: true });
       },
       chainLightning: () => {
-        sample({ src: samples.zap, duration: 0.42, rate: 1.58, volume: 0.42 });
         electricCrackle({ base: 700, volume: 0.025 });
       },
       chainTesla: () => {
-        sample({ src: samples.zap, duration: 0.52, rate: 1.42, volume: 0.5 });
         electricCrackle({ base: 980, volume: 0.03, heavy: true });
       },
       laser: () => {
@@ -906,7 +903,7 @@ function towerById(id) {
 
 function toast(message, type = "info") {
   els.toast.textContent = message;
-  els.toast.className = `toast show toast-${type}`;
+  els.toast.className = `toast show toast-${type}${state.screen === "game" ? " game-toast" : ""}`;
   clearTimeout(toast.timer);
   const duration = type === "boss" ? 3200 : type === "discovery" ? 2600 : type === "reward" ? 2200 : 1800;
   toast.timer = setTimeout(() => els.toast.classList.remove("show"), duration);
@@ -932,7 +929,10 @@ function announceWaveBonus(amount) {
   els.waveBonus.textContent = `Wave bonus: +${amount} coins`;
   els.waveBonus.classList.add("show");
   clearTimeout(announceWaveBonus.timer);
-  announceWaveBonus.timer = setTimeout(() => els.waveBonus.classList.remove("show"), 1800);
+  announceWaveBonus.timer = setTimeout(() => {
+    els.waveBonus.classList.remove("show");
+    els.waveBonus.textContent = "";
+  }, 5000);
 }
 
 function dateKey(date = new Date()) {
@@ -1090,6 +1090,7 @@ function saveDataFromState() {
     gems: state.gems,
     unlocked: [...state.unlocked],
     clearedStages: [...state.clearedStages],
+    stageStars: state.stageStars,
     dailyRewards: state.dailyRewards,
     metaCoins: state.metaCoins,
     towerLevels: state.towerLevels,
@@ -1108,6 +1109,7 @@ function applySaveData(data) {
     .map((id) => (id === "cannon" ? "barracks" : id === "nova" ? "ranger" : id))
     .filter((id) => towerById(id)));
   state.clearedStages = new Set(data.clearedStages || []);
+  state.stageStars = data.stageStars && typeof data.stageStars === "object" ? data.stageStars : {};
   state.dailyRewards = cleanDailyRewards(data.dailyRewards);
   state.metaCoins = Math.max(0, Math.floor(Number(data.metaCoins) || 0));
   state.towerLevels = data.towerLevels && typeof data.towerLevels === "object" ? data.towerLevels : {};
@@ -1424,20 +1426,7 @@ function mobStageAppearances(name) {
 
 function stageListLabel(stages) {
   if (!stages.length) return "Unknown";
-  const ranges = [];
-  let start = stages[0];
-  let previous = stages[0];
-  for (let i = 1; i <= stages.length; i += 1) {
-    const stage = stages[i];
-    if (stage === previous + 1) {
-      previous = stage;
-      continue;
-    }
-    ranges.push(start === previous ? `${start}` : `${start}-${previous}`);
-    start = stage;
-    previous = stage;
-  }
-  return `Stage${stages.length === 1 ? "" : "s"} ${ranges.join(", ")}`;
+  return `Stage${stages.length === 1 ? "" : "s"} ${stages.join(", ")}`;
 }
 
 function mobBaselineStats(baseMonster) {
@@ -1473,16 +1462,17 @@ function bossIndexStats(stageNumber) {
 }
 
 function mobCardMarkup(monster, found) {
-  const portrait = mobPortraitDataUrl(`m:${monster.name}`, monster, null);
   if (!found) {
+    const silhouette = mobPortraitDataUrl(`m:${monster.name}`, monster, null);
     return `
       <article class="mob-card unknown">
-        <img class="mob-portrait" src="${portrait}" alt="">
+        <img class="mob-portrait mob-silhouette" src="${silhouette}" alt="Unknown mob silhouette">
         <b>???</b>
         <small>Defeat one to record it</small>
       </article>
     `;
   }
+  const portrait = mobPortraitDataUrl(`m:${monster.name}`, monster, null);
   const stats = mobBaselineStats(monster);
   return `
       <article class="mob-card">
@@ -1500,16 +1490,17 @@ function mobCardMarkup(monster, found) {
 }
 
 function bossCardMarkup(boss, stageNumber, found) {
-  const portrait = mobPortraitDataUrl(`b:${boss.name}`, null, boss);
   if (!found) {
+    const silhouette = mobPortraitDataUrl(`b:${boss.name}`, null, boss);
     return `
       <article class="mob-card unknown boss">
-        <img class="mob-portrait" src="${portrait}" alt="">
+        <img class="mob-portrait mob-silhouette" src="${silhouette}" alt="Unknown boss silhouette">
         <b>???</b>
         <small>Stage ${stageNumber} boss</small>
       </article>
     `;
   }
+  const portrait = mobPortraitDataUrl(`b:${boss.name}`, null, boss);
   const stats = bossIndexStats(stageNumber);
   return `
     <article class="mob-card boss">
@@ -1604,7 +1595,7 @@ function renderHome() {
         ? `
           <span>Beam DPS <b>${formatStat(stats.beamDamage)}</b></span>
           <span>Range <b>${formatStat(stats.range)}</b></span>
-          <span>Beam <b>Continuous</b></span>
+          <span class="continuous-stat">Beam <b>Continuous</b></span>
         `
         : tower.kind === "summon"
           ? `
@@ -1740,14 +1731,18 @@ function renderLevelList() {
     const locked = multiplayerMapPick ? multiplayerLocked : soloLocked;
     const card = document.createElement("article");
     card.className = `level-card ${locked ? "locked" : ""}`;
+    const earnedStars = Math.max(0, Math.min(3, Number(state.stageStars[level.id]) || 0));
     card.innerHTML = `
       <div class="level-card-main">
         <h3>${level.name}</h3>
+        <div class="stage-stars" aria-label="${earnedStars} of 3 stars">
+          ${[1, 2, 3].map((star) => `<span class="${star <= earnedStars ? "earned" : ""}">★</span>`).join("")}
+        </div>
         <div class="level-meta">
           <span class="chip">${level.waves} waves</span>
           <span class="chip">Base Health ${level.baseHp}</span>
         </div>
-        <p>Reward: ${level.rewardGems} gems, ${level.rewardXp} XP</p>
+        <p>Max reward: ${level.rewardGems} gems, ${level.rewardXp} XP</p>
       </div>
     `;
     const btn = document.createElement("button");
@@ -3377,19 +3372,19 @@ function combatStatsForTower(tower) {
 function towerShotOrigin(tower) {
   // These coordinates match the visible weapon, crystal, coil, or effect drawn in drawTower.
   const anchors = {
-    dart: { x: 0, y: -26 },
-    ice: { x: 7, y: -42 },
-    spark: { x: 0, y: -34 },
-    sniper: { x: 39, y: -19 },
-    venom: { x: 4, y: -35 },
-    bank: { x: -7, y: -26 },
-    tesla: { x: 0, y: -38 },
-    ember: { x: 0, y: -44 },
-    barracks: { x: 15, y: -43 },
-    void: { x: 0, y: -18 },
-    ranger: { x: 26, y: -18 },
-    rail: { x: 42, y: -15.5 },
-    orbital: { x: 0, y: -14 },
+    dart: { x: 34, y: -14 },
+    ice: { x: 0, y: -43 },
+    spark: { x: 0, y: -44 },
+    sniper: { x: -37, y: -8 },
+    venom: { x: 1, y: -39 },
+    bank: { x: 0, y: -28 },
+    tesla: { x: 0, y: -47 },
+    ember: { x: 0, y: -47 },
+    barracks: { x: 11, y: -38 },
+    void: { x: 0, y: -43 },
+    ranger: { x: -25, y: -29 },
+    rail: { x: -34, y: -24 },
+    orbital: { x: 0, y: -47 },
     laser: { x: 18, y: -18 },
     quake: { x: 0, y: -40 },
   };
@@ -3459,8 +3454,8 @@ function updateTower(tower, dt) {
     shot.impactTarget = target;
     shot.impactTower = tower;
     shot.impactStats = stats;
-    // The slug visually reaches its target when its life is almost depleted.
-    shot.impactLife = shot.life * 0.15;
+    // Apply damage on the same frame that the faster visible rail streak reaches its target.
+    shot.impactLife = shot.life * 0.3;
   } else {
     applyDamage(tower, target, stats);
   }
@@ -3484,7 +3479,7 @@ function createTowerShot(tower, target, stats) {
     spark: { style: "lightning", life: 0.12, width: 2 },
     tesla: { style: "tesla", life: 0.13, width: 2.5 },
     sniper: { style: "bullet", life: 0.18, width: 2.5 },
-    rail: { style: "rail", life: 0.28, width: 5 },
+    rail: { style: "rail", life: 0.18, width: 5 },
     venom: { style: "poison", life: 0.3, width: 5 },
     ember: { style: "fire", life: 0.3, width: 6 },
     laser: { style: "laser", life: 0.22, width: 4 },
@@ -3754,8 +3749,8 @@ function applyDamage(tower, target, stats) {
   }
   if (tower.kind === "chain") {
     const shockColor = tower.id === "spark" ? "#b98cff" : "#65ffe4";
-    const drawChainFx = state.shots.length < MAX_ACTIVE_SHOTS * 0.85;
-    const maxDrawnJumps = drawChainFx ? stats.chainTargets : 0;
+    const drawChainFx = state.shots.length < MAX_ACTIVE_SHOTS * 0.55 && state.mobs.length < 90;
+    const maxDrawnJumps = drawChainFx ? Math.min(stats.chainTargets, 2) : 0;
     target.shockTimer = Math.max(target.shockTimer || 0, drawChainFx ? 0.24 : 0.1);
     target.shockColor = shockColor;
     let chainSource = target;
@@ -3787,7 +3782,7 @@ function applyDamage(tower, target, stats) {
       }
       chainSource = mob;
     });
-    if (jumps.length) sound.attack(tower.id === "tesla" ? "chainTesla" : "chainLightning");
+    if (jumps.length && drawChainFx) sound.attack(tower.id === "tesla" ? "chainTesla" : "chainLightning");
   }
 }
 
@@ -3947,11 +3942,15 @@ function drawBossWarning() {
   ctx.font = "bold 13px sans-serif";
   ctx.fillStyle = "#ffd7d2";
   const label = `${spawn.bossName || "Boss"} in ${Math.max(0, Math.ceil(spawn.t))}s`;
-  const labelY = p.y - ringR - 14 < 16 ? p.y + ringR + 18 : p.y - ringR - 14;
+  const labelX = canvas.width / 2;
+  const labelY = 42;
   ctx.strokeStyle = "#150808";
   ctx.lineWidth = 4;
-  ctx.strokeText(label, p.x, labelY);
-  ctx.fillText(label, p.x, labelY);
+  const maxLabelWidth = canvas.width - 48;
+  const measured = ctx.measureText(label).width;
+  if (measured > maxLabelWidth) ctx.font = `bold ${Math.max(9, Math.floor(13 * maxLabelWidth / measured))}px sans-serif`;
+  ctx.strokeText(label, labelX, labelY, maxLabelWidth);
+  ctx.fillText(label, labelX, labelY, maxLabelWidth);
   ctx.restore();
 }
 
@@ -5802,7 +5801,7 @@ function drawTower(tower, options = {}) {
       ctx.lineTo(34, -2);
       ctx.stroke();
       ctx.lineWidth = 3;
-      if (!options.ghost) drawMuzzleCharge(tower, 39, -19, "#ffe8ab", 0.85);
+      if (!options.ghost) drawMuzzleCharge(tower, -37, -8, "#ffe8ab", 0.85);
       break;
     case "rail":
       drawTowerBase("hex");
@@ -5835,7 +5834,7 @@ function drawTower(tower, options = {}) {
       ctx.fillRect(6, -24.5, 4.8, 3.4);
       ctx.fillRect(19, -24.5, 4.8, 3.4);
       ctx.fillRect(32, -24.5, 4.8, 3.4);
-      if (!options.ghost) drawMuzzleCharge(tower, 42, -15.5, "#9fd0ff", 1.1);
+      if (!options.ghost) drawMuzzleCharge(tower, -34, -24, "#9fd0ff", 1.1);
       break;
     case "venom":
       drawTowerBase("pot");
@@ -6046,7 +6045,7 @@ function drawTower(tower, options = {}) {
 }
 
 function drawTowerUiImage(tower, img, options = {}) {
-  const size = tower.id === "sniper" || tower.id === "rail" || tower.id === "orbital" ? 76 : 70;
+  const size = tower.id === "sniper" || tower.id === "orbital" ? 76 : tower.id === "rail" ? 68 : 70;
   const x = -size / 2;
   const y = -size * 0.78;
   const glow = tower.color || "#ffffff";
@@ -6054,14 +6053,21 @@ function drawTowerUiImage(tower, img, options = {}) {
   ctx.globalAlpha = options.ghost ? 0.58 : 1;
   ctx.shadowColor = glow;
   ctx.shadowBlur = options.ghost ? 8 : 13;
-  ctx.drawImage(img, x, y, size, size);
+  ctx.filter = tower.id === "sniper" || tower.id === "rail" ? "brightness(1.15)" : "none";
+  if (tower.id === "tesla" || tower.id === "haste") {
+    const cropHeight = Math.floor((img.naturalHeight || 256) * 0.88);
+    ctx.drawImage(img, 0, 0, img.naturalWidth || 256, cropHeight, x, y, size, size * 0.88);
+  } else {
+    ctx.drawImage(img, x, y, size, size);
+  }
+  ctx.filter = "none";
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
   ctx.restore();
 
   if (!options.ghost) {
-    if (tower.id === "sniper") drawMuzzleCharge(tower, 34, -26, "#ffe8ab", 0.85);
-    if (tower.id === "rail") drawMuzzleCharge(tower, 36, -25, "#9fd0ff", 1.1);
+    if (tower.id === "sniper") drawMuzzleCharge(tower, -37, -8, "#ffe8ab", 0.85);
+    if (tower.id === "rail") drawMuzzleCharge(tower, -34, -24, "#9fd0ff", 1.1);
   }
 
   drawTowerLevelBadge(tower.level);
@@ -6752,8 +6758,9 @@ function drawShot(shot) {
   const py = nx;
   const progress = 1 - lifeRatio;
   const easedProgress = Math.min(1, progress * 1.18);
-  const projectileX = shot.x + dx * easedProgress;
-  const projectileY = shot.y + dy * easedProgress;
+  const projectileProgress = shot.style === "rail" ? Math.min(1, progress * 1.45) : easedProgress;
+  const projectileX = shot.x + dx * projectileProgress;
+  const projectileY = shot.y + dy * projectileProgress;
   const tailLength = Math.min(distance * 0.22, 34);
   const tailX = projectileX - nx * tailLength;
   const tailY = projectileY - ny * tailLength;
@@ -6938,91 +6945,27 @@ function drawShot(shot) {
   }
 
   if (shot.style === "rail") {
-    const railTime = performance.now() / 1000;
-    const railFade = Math.min(1, lifeRatio / 0.55);
+    const railFade = Math.min(1, lifeRatio / 0.3);
     ctx.lineCap = "round";
-
-    if (lifeRatio > 0.8) {
-      const burst = (lifeRatio - 0.8) / 0.2;
-      ctx.strokeStyle = "#ffffff";
-      ctx.globalAlpha = burst * 0.9;
-      ctx.lineWidth = 9 + burst * 8;
-      drawSimpleLine(shot.x, shot.y, shot.x + nx * 30, shot.y + ny * 30);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#e6f3ff";
-      for (let i = 0; i < 6; i += 1) {
-        const mzA = angle + Math.PI + (i - 2.5) * 0.4;
-        ctx.globalAlpha = burst;
-        ctx.beginPath();
-        ctx.moveTo(shot.x, shot.y);
-        ctx.lineTo(shot.x + Math.cos(mzA) * (14 + burst * 10), shot.y + Math.sin(mzA) * (14 + burst * 10));
-        ctx.lineTo(shot.x + Math.cos(mzA + 0.14) * 6, shot.y + Math.sin(mzA + 0.14) * 6);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
 
     const railGrad = ctx.createLinearGradient(tailX, tailY, projectileX, projectileY);
     railGrad.addColorStop(0, "#6ea9ff00");
-    railGrad.addColorStop(0.35, "#6ea9ff66");
-    railGrad.addColorStop(1, "#dff1ffcc");
+    railGrad.addColorStop(0.28, "#6ea9ff66");
+    railGrad.addColorStop(1, "#f4fbff");
+    ctx.shadowColor = "#86c7ff";
+    ctx.shadowBlur = 12;
     ctx.strokeStyle = railGrad;
     ctx.globalAlpha = railFade;
-    ctx.lineWidth = 11;
+    ctx.lineWidth = 8;
     drawSimpleLine(tailX, tailY, projectileX, projectileY);
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 3.4;
+    ctx.lineWidth = 2.6;
     drawSimpleLine(tailX, tailY, projectileX, projectileY);
+    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
 
-    for (let r = 0; r < 3; r += 1) {
-      const ringP = ((1 - lifeRatio) * 1.6 + r * 0.33) % 1;
-      const ringX = shot.x + (shot.tx - shot.x) * ringP;
-      const ringY = shot.y + (shot.ty - shot.y) * ringP;
-      ctx.strokeStyle = "#bfe0ff";
-      ctx.globalAlpha = railFade * 0.7 * (1 - ringP * 0.5);
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.ellipse(ringX, ringY, 7, 7, angle, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-
-    const railLen = Math.hypot(projectileX - tailX, projectileY - tailY);
-    const railSteps = Math.max(6, Math.min(16, Math.round(railLen / 14)));
-    for (let strand = 0; strand < 2; strand += 1) {
-      ctx.strokeStyle = strand ? "#9fd0ff" : "#e6f3ff";
-      ctx.globalAlpha = 0.75 * railFade;
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      for (let i = 0; i <= railSteps; i += 1) {
-        const k = i / railSteps;
-        const wob = Math.sin(k * Math.PI * 4 + railTime * 30 + strand * Math.PI) * 7 * (1 - k * 0.4);
-        const hx = tailX + (projectileX - tailX) * k + px * wob;
-        const hy = tailY + (projectileY - tailY) * k + py * wob;
-        if (i === 0) ctx.moveTo(hx, hy);
-        else ctx.lineTo(hx, hy);
-      }
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-
-    const slugGlow = ctx.createRadialGradient(projectileX, projectileY, 1, projectileX, projectileY, 16);
-    slugGlow.addColorStop(0, "#ffffff");
-    slugGlow.addColorStop(0.4, "#bcdcffbb");
-    slugGlow.addColorStop(1, "#6ea9ff00");
-    ctx.fillStyle = slugGlow;
-    ctx.beginPath();
-    ctx.arc(projectileX, projectileY, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.ellipse(projectileX, projectileY, 12, 3.6, angle, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (lifeRatio < 0.16) {
-      const boom = 1 - lifeRatio / 0.16;
+    if (lifeRatio < 0.3) {
+      const boom = 1 - lifeRatio / 0.3;
       drawImpactRing(shot.tx, shot.ty, 12 + boom * 26, "#dfe9ef");
       drawImpactRing(shot.tx, shot.ty, 6 + boom * 14, "#9fd0ff");
       ctx.strokeStyle = "#bfe0ff";
@@ -7474,8 +7417,6 @@ function towerTypeLimitStatus(towerId, placedTowers = ownPlacedTowers()) {
 
 function placementStatus(x, y) {
   if (towerOverlaps(x, y)) return { ok: false, message: "Towers cannot overlap" };
-  if (backgroundObstacleOverlaps(x, y)) return { ok: false, message: "Blocked by terrain" };
-  if (featureOverlaps(x, y)) return { ok: false, message: "Blocked by terrain" };
   const distance = distanceToRoads(x, y);
   if (distance < 46) return { ok: false, message: "Cannot place on roads" };
   return { ok: true, message: "" };
@@ -7595,12 +7536,17 @@ function sellSelected() {
 function winLevel() {
   if (state.levelEnded) return;
   state.levelEnded = true;
-  const gems = state.currentLevel.rewardGems;
-  const coins = state.currentLevel.rewardGems * 12;
-  const xp = state.currentLevel.rewardXp + state.earnedXp;
+  const stars = state.baseHp >= state.currentLevel.baseHp
+    ? 3
+    : state.baseHp >= Math.ceil(state.currentLevel.baseHp * 0.5) ? 2 : 1;
+  const rewardScale = stars === 3 ? 1 : stars === 2 ? 0.8 : 0.6;
+  const gems = Math.max(1, Math.round(state.currentLevel.rewardGems * rewardScale));
+  const coins = Math.max(1, Math.round(state.currentLevel.rewardGems * 12 * rewardScale));
+  const xp = Math.max(1, Math.round(state.currentLevel.rewardXp * rewardScale)) + state.earnedXp;
   state.gems += gems;
   state.metaCoins += coins;
   state.clearedStages.add(state.currentLevel.id);
+  state.stageStars[state.currentLevel.id] = Math.max(Number(state.stageStars[state.currentLevel.id]) || 0, stars);
   addXp(xp);
   save();
   state.runningWave = false;
@@ -7610,7 +7556,7 @@ function winLevel() {
   state.mobs = [];
   sound.result(true);
   endMultiplayerRoom("won");
-  showResult("Won", gems, xp, coins);
+  showResult("Won", gems, xp, coins, stars);
 }
 
 function loseLevel() {
@@ -7634,11 +7580,19 @@ function loseLevel() {
   showResult("Lost", gems, xp, coins);
 }
 
-function showResult(result, gems, xp, coins = 0) {
+function showResult(result, gems, xp, coins = 0, stars = 0) {
   els.resultTitle.textContent = result;
   els.resultGems.textContent = gems;
   els.resultXp.textContent = xp;
   if (els.resultCoins) els.resultCoins.textContent = coins;
+  const resultStars = document.querySelector("#resultStars");
+  if (resultStars) {
+    resultStars.hidden = result.toLowerCase() !== "won";
+    resultStars.setAttribute("aria-label", `${stars} of 3 stars earned`);
+    resultStars.innerHTML = [1, 2, 3]
+      .map((star) => `<span class="${star <= stars ? "earned" : ""}" style="--star-delay:${(star - 1) * 0.16}s">★</span>`)
+      .join("");
+  }
   els.resultCountdown.textContent = "5";
   els.resultModal.querySelector(".result-card").className = `result-card panel ${result.toLowerCase()}`;
   els.resultModal.classList.add("open");
