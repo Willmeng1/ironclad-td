@@ -28,6 +28,7 @@ async function requestLandscapeMode() {
 if (isTouchDevice && !forceLaptopLayout) requestLandscapeMode();
 const ctx = canvas.getContext("2d");
 const MAX_TOWER_LEVEL = 5;
+const WAVE_HEALTH_GROWTH_FACTOR = 0.8;
 const MAX_ACTIVE_SHOTS = 90;
 const MAX_ACTIVE_CHAIN_SHOTS = 12;
 const CHAIN_RANGE = 75;
@@ -834,6 +835,9 @@ const els = {
   bossBar: document.querySelector("#bossBar"),
   bossName: document.querySelector("#bossName"),
   bossHpText: document.querySelector("#bossHpText"),
+  bossHpCurrent: document.querySelector("#bossHpCurrent"),
+  bossHpMax: document.querySelector("#bossHpMax"),
+  bossHpTrail: document.querySelector("#bossHpTrail"),
   bossHpFill: document.querySelector("#bossHpFill"),
   waveBonus: document.querySelector("#waveBonus"),
   gameTitle: document.querySelector("#gameTitle"),
@@ -901,12 +905,61 @@ function towerById(id) {
   return towers.find((tower) => tower.id === id);
 }
 
+const notificationMotion = new WeakMap();
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function animateNotification(element, duration, clearText = false) {
+  const previous = notificationMotion.get(element);
+  if (previous) {
+    clearTimeout(previous.timer);
+    previous.animations.forEach((animation) => animation.cancel());
+  }
+  const motion = { animations: [], timer: null };
+  notificationMotion.set(element, motion);
+  element.classList.add("show");
+  const boss = element.classList.contains("toast-boss");
+  const fromTop = boss || element === els.waveBonus;
+  const resting = "translate(-50%, 0) scale(1)";
+  const frames = reducedMotion.matches
+    ? [{ opacity: 0 }, { opacity: 1 }]
+    : [
+      { opacity: 0, transform: `translate(-50%, ${fromTop ? -24 : 24}px) scale(${boss ? .78 : .88})`, offset: 0 },
+      { opacity: 1, transform: `translate(-50%, ${fromTop ? 3 : -3}px) scale(${boss ? 1.06 : 1.025})`, offset: .7 },
+      { opacity: 1, transform: resting, offset: 1 },
+    ];
+  motion.animations.push(element.animate(frames, {
+    duration: reducedMotion.matches ? 140 : boss ? 580 : 420,
+    easing: "cubic-bezier(.2,.75,.25,1)",
+  }));
+  if (!reducedMotion.matches) {
+    const accent = getComputedStyle(element).getPropertyValue("--notice-accent").trim() || "#90caff";
+    motion.animations.push(element.animate([
+      { boxShadow: `0 0 0 0 ${accent}, 0 8px 24px #0006` },
+      { boxShadow: `0 0 0 7px transparent, 0 0 24px ${accent}`, offset: .45 },
+      { boxShadow: "0 0 0 10px transparent, 0 8px 24px #0006" },
+    ], { duration: boss ? 950 : 720, easing: "ease-out" }));
+  }
+  motion.timer = setTimeout(() => {
+    const exit = element.animate(reducedMotion.matches
+      ? [{ opacity: 1 }, { opacity: 0 }]
+      : [{ opacity: 1, transform: resting }, { opacity: 0, transform: `translate(-50%, ${fromTop ? -12 : 12}px) scale(.96)` }],
+    { duration: reducedMotion.matches ? 120 : 260, easing: "ease-in", fill: "forwards" });
+    motion.animations.push(exit);
+    exit.onfinish = () => {
+      if (notificationMotion.get(element) !== motion) return;
+      element.classList.remove("show");
+      if (clearText) element.textContent = "";
+      motion.animations.forEach((animation) => animation.cancel());
+      notificationMotion.delete(element);
+    };
+  }, duration);
+}
+
 function toast(message, type = "info") {
   els.toast.textContent = message;
-  els.toast.className = `toast show toast-${type}${state.screen === "game" ? " game-toast" : ""}`;
-  clearTimeout(toast.timer);
+  els.toast.className = `toast toast-${type}${state.screen === "game" ? " game-toast" : ""}`;
   const duration = type === "boss" ? 3200 : type === "discovery" ? 2600 : type === "reward" ? 2200 : 1800;
-  toast.timer = setTimeout(() => els.toast.classList.remove("show"), duration);
+  animateNotification(els.toast, duration);
 }
 
 function setButtonLabel(button, label) {
@@ -926,13 +979,23 @@ function resetSellConfirmation() {
 
 function announceWaveBonus(amount) {
   if (!els.waveBonus) return;
-  els.waveBonus.textContent = `Wave bonus: +${amount} coins`;
-  els.waveBonus.classList.add("show");
-  clearTimeout(announceWaveBonus.timer);
-  announceWaveBonus.timer = setTimeout(() => {
-    els.waveBonus.classList.remove("show");
-    els.waveBonus.textContent = "";
-  }, 5000);
+  cancelAnimationFrame(announceWaveBonus.countFrame);
+  els.waveBonus.innerHTML = `<span class="wave-reward-emblem" aria-hidden="true">✦</span>
+    <span class="wave-reward-copy"><small>WAVE BONUS</small><strong>+<span class="wave-reward-count"></span> <span class="wave-reward-unit">COINS</span></strong></span>
+    <span class="wave-reward-shine" aria-hidden="true"></span>`;
+  const counter = els.waveBonus.querySelector(".wave-reward-count");
+  counter.textContent = reducedMotion.matches ? String(amount) : "0";
+  animateNotification(els.waveBonus, 5000, true);
+  if (!reducedMotion.matches) {
+    const started = performance.now();
+    const countUp = (now) => {
+      if (!counter.isConnected) return;
+      const progress = Math.max(0, Math.min(1, (now - started) / 720));
+      counter.textContent = String(Math.round(amount * (1 - (1 - progress) ** 3)));
+      if (progress < 1) announceWaveBonus.countFrame = requestAnimationFrame(countUp);
+    };
+    announceWaveBonus.countFrame = requestAnimationFrame(countUp);
+  }
 }
 
 function dateKey(date = new Date()) {
@@ -1324,9 +1387,124 @@ function recordMobDiscovery(mob) {
 }
 
 const mobPortraitCache = new Map();
+const MOB_ART_NAMES = [
+  "Mudling",
+  "Mossback",
+  "Rot Grub",
+  "Marrow Hulk",
+  "Thunder Brute",
+  "Doom Hulk",
+  "Root Mauler",
+  "Tar Blob",
+  "Magma Ox",
+  "Rust Crawler",
+  "Coal Golem",
+  "Iron Mite",
+  "Stonejaw",
+  "Lava Guard",
+  "Shell Bug",
+  "Grave Worm",
+  "Bone Knight",
+  "Briar Imp",
+  "Cinder Hound",
+  "Blood Skitter",
+  "Dread Stalker",
+  "Bog Runner",
+  "Hell Pup",
+  "Dust Rat",
+  "Soot Skipper",
+  "Acid Nibbler",
+  "Ash Sprite",
+  "Shardling",
+  "Plague Bat",
+  "Phase Imp",
+  "Storm Wisp",
+  "Moon Bat",
+  "Gloom Bat",
+  "Ember Moth",
+  "Rune Wisp",
+  "Feral Wisp",
+  "Needle Fiend",
+  "Frost Wretch",
+  "Gear Imp",
+  "Void Leech",
+  "Thornback",
+  "Night Shard",
+  "Final Horror",
+  "Glass Imp",
+  "Crystal Creep",
+  "Hook Fiend",
+  "Grimjaw",
+  "Nightclaw",
+  "Bonehide",
+  "Ashmaw",
+  "Frostfang",
+  "Rotspike",
+  "Ironhorn",
+  "Bloodwing",
+  "Voidbite",
+  "Dreadeye",
+  "Stoneback",
+  "Venomlord",
+  "Stormskull",
+  "Hellgrin",
+  "The Last Horror"
+];
+const mobArtIndices = new Map(MOB_ART_NAMES.map((name, index) => [name, index]));
+const mobArtAtlas = new Image();
+let mobArtReady = false;
+
+function preloadMobArt() {
+  mobArtAtlas.onload = () => {
+    mobArtReady = true;
+    mobPortraitCache.clear();
+    if (els.mobIndexModal.classList.contains("open")) renderMobIndex();
+  };
+  mobArtAtlas.onerror = () => {
+    console.warn("Mob artwork could not load; using the built-in fallback.");
+  };
+  mobArtAtlas.src = "./assets/mob-art-v2/sprites.webp?v=1";
+}
+
+function mobArtCell(name) {
+  const index = mobArtIndices.get(name);
+  if (!mobArtReady || index === undefined) return null;
+  return { x: (index % 8) * 256, y: Math.floor(index / 8) * 256 };
+}
+
+function drawGeneratedMob(mob, size) {
+  const cell = mobArtCell(mob.boss ? mob.bossName : mob.monsterName);
+  if (!cell) return false;
+  const dimension = size * 3;
+  ctx.save();
+  ctx.fillStyle = "#0b0d1044";
+  ctx.beginPath();
+  ctx.ellipse(mob.x, mob.y + size * .78, size * .8, size * .22, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.drawImage(mobArtAtlas, cell.x, cell.y, 256, 256,
+    mob.x - dimension / 2, mob.y - dimension * .54, dimension, dimension);
+  ctx.restore();
+  return true;
+}
+
+function drawMobHealthBar(mob, topOffset = 24) {
+  ctx.fillStyle = "#111417";
+  ctx.fillRect(mob.x - 18, mob.y - topOffset, 36, 5);
+  ctx.fillStyle = mob.hp / mob.maxHp > 0.45 ? "#79d77b" : "#ec675d";
+  ctx.fillRect(mob.x - 18, mob.y - topOffset, Math.max(0, 36 * (mob.hp / mob.maxHp)), 5);
+}
 
 function mobPortraitDataUrl(key, monster, boss) {
   if (mobPortraitCache.has(key)) return mobPortraitCache.get(key);
+  const cell = mobArtCell(boss?.name || monster?.name);
+  if (cell) {
+    const portrait = document.createElement("canvas");
+    portrait.width = portrait.height = 120;
+    portrait.getContext("2d").drawImage(mobArtAtlas, cell.x, cell.y, 256, 256, 0, 0, 120, 120);
+    const url = portrait.toDataURL();
+    mobPortraitCache.set(key, url);
+    return url;
+  }
   const region = 150;
   const shape = monster?.shape || "normal";
   const size = boss ? 22 : shape === "armored" || shape === "brute" ? 17 : shape === "runner" || shape === "winged" ? 13 : 14;
@@ -1369,13 +1547,38 @@ function mobPortraitDataUrl(key, monster, boss) {
 
 const towerPortraitCache = new Map();
 const towerUiImages = new Map();
-const TOWER_UI_VERSION = 4;
+const TOWER_UI_VERSION = 5;
+// Ground-level selection ovals follow the pedestal, not the weapon or level badge.
+// Offsets are relative to the unchanged ground/placement anchor.
+const TOWER_SELECTION_RINGS = {
+  dart: { x: 0, y: -8, radiusX: 32, radiusY: 12 },
+  ice: { x: 0, y: -8, radiusX: 30, radiusY: 12 },
+  spark: { x: 0, y: -8, radiusX: 29, radiusY: 12 },
+  sniper: { x: 0, y: -8, radiusX: 29, radiusY: 12 },
+  venom: { x: 0, y: -8, radiusX: 31, radiusY: 12 },
+  bank: { x: 1, y: -8, radiusX: 34, radiusY: 12 },
+  tesla: { x: 0, y: -8, radiusX: 30, radiusY: 12 },
+  ember: { x: 0, y: -8, radiusX: 33, radiusY: 12 },
+  haste: { x: 1, y: -8, radiusX: 32, radiusY: 12 },
+  power: { x: 0, y: -8, radiusX: 32, radiusY: 12 },
+  void: { x: 0, y: -8, radiusX: 33, radiusY: 12 },
+  barracks: { x: 0, y: -8, radiusX: 33, radiusY: 12 },
+  ranger: { x: 0, y: -8, radiusX: 33, radiusY: 12 },
+  rail: { x: 0, y: -8, radiusX: 28, radiusY: 12 },
+  orbital: { x: 0, y: -8, radiusX: 35, radiusY: 12 },
+};
+const DEFAULT_TOWER_SELECTION_RING = { x: 0, y: 6, radiusX: 26, radiusY: 12 };
+const TOWER_BASE_CLEARANCE = 4; // Includes the white outlines' 2.5px stroke.
+
+function towerSelectionRing(towerId) {
+  return TOWER_SELECTION_RINGS[towerId] || DEFAULT_TOWER_SELECTION_RING;
+}
 const stageBackgroundImages = new Map();
 const STAGE_BACKGROUND_VERSION = 2;
 
 function towerPortraitDataUrl(tower) {
   if (towerPortraitCache.has(tower.id)) return towerPortraitCache.get(tower.id);
-  const url = `./assets/tower-ui/${tower.id}.png?v=${TOWER_UI_VERSION}`;
+  const url = `./assets/tower-ui-v2/${tower.id}.png?v=${TOWER_UI_VERSION}`;
   towerPortraitCache.set(tower.id, url);
   return url;
 }
@@ -1448,7 +1651,8 @@ function bossIndexStats(stageNumber) {
   const level = levelData[stageNumber - 1];
   const stage = level?.id || stageNumber;
   const baseHp = 14 + stage * 5;
-  const waveHpScale = 1 + 2.25 + stage * 0.12;
+  const waves = level?.waves || 1;
+  const waveHpScale = waveHealthScale(stage, waves, waves);
   const speed = (37 + stage * 0.85 + 16 + stage * 0.7) * 1.08;
   const stagePressure = 1 + Math.min(0.08, Math.max(0, (stage - 1) * 0.006));
   const stageBossScale = 4.2 + stage * 0.18;
@@ -1935,7 +2139,7 @@ function setupMultiplayer() {
     if (tower.ownerId === multiplayer.socket.id) {
       state.coins -= upgradeCost(tower);
       sound.upgrade();
-      toast(`${tower.name} upgraded to L${tower.level + 1}`);
+      toast(`${tower.name} upgraded to L${tower.level + 1}`, "upgrade");
     }
     tower.level += 1;
     updateHud();
@@ -2468,14 +2672,42 @@ function updateBossBar() {
   const boss = state.mobs.find((mob) => mob.boss && mob.hp > 0);
   if (!boss) {
     els.bossBar.classList.remove("show");
+    updateBossBar.previous = null;
     return;
   }
   const hp = Math.max(0, Math.ceil(boss.hp));
   const maxHp = Math.ceil(boss.maxHp);
+  const key = `${state.currentLevel?.id}:${state.wave}:${boss.uid ?? boss.bossName}:${maxHp}`;
+  const previous = updateBossBar.previous;
+  const now = performance.now();
+  const isNew = !previous || previous.key !== key;
   els.bossName.textContent = boss.bossName || "Boss";
-  els.bossHpText.textContent = `${hp} / ${maxHp}`;
-  els.bossHpFill.style.width = `${Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100))}%`;
+  els.bossHpCurrent.textContent = String(hp);
+  els.bossHpMax.textContent = String(maxHp);
+  const percentage = Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100));
+  els.bossHpFill.style.width = `${percentage}%`;
+  els.bossHpTrail.style.width = `${percentage}%`;
+  // A new encounter must not inherit a previous boss's damage trail.
+  if (isNew) els.bossHpTrail.getAnimations().forEach(animation => animation.finish());
+  els.bossBar.classList.toggle("critical", percentage <= 25);
   els.bossBar.classList.add("show");
+  let lastHit = previous?.lastHit || 0;
+  if (isNew && !reducedMotion.matches) {
+    els.bossName.getAnimations().forEach(a => a.cancel());
+    els.bossName.animate([
+      { opacity: 0, transform: "translateY(8px) scale(.9)", letterSpacing: ".16em" },
+      { opacity: 1, transform: "translateY(-2px) scale(1.03)", offset: .7 },
+      { opacity: 1, transform: "none", letterSpacing: ".035em" },
+    ], { duration: 650, easing: "cubic-bezier(.2,.8,.2,1)" });
+  } else if (!isNew && hp < previous.hp && now - lastHit > 180 && !reducedMotion.matches) {
+    lastHit = now;
+    els.bossHpCurrent.getAnimations().forEach(a => a.cancel());
+    els.bossHpCurrent.animate([
+      { color: "#fff4c9", transform: "scale(1.12)" },
+      { color: "#fff4ed", transform: "scale(1)" },
+    ], { duration: 260, easing: "ease-out" });
+  }
+  updateBossBar.previous = { key, hp, lastHit };
 }
 
 function updateSelectedInfo() {
@@ -2844,6 +3076,17 @@ function lateStageBossHpScale(stage) {
   }[stage] || 0.65;
 }
 
+function waveHealthScale(stage, wave, totalWaves, tier = null) {
+  const progress = (wave - 1) / Math.max(1, totalWaves - 1);
+  const ramp = Math.pow(progress, 1.65);
+  const stageGrowth = 1 + ramp * (2.25 + stage * 0.12);
+  const tierGrowth = tier === null ? 1 : 1 + ramp * (0.28 + tier * 0.04) / 0.78;
+  const previousScale = stageGrowth * midGamePressure(wave, totalWaves).hp * tierGrowth;
+  // Preserve wave-one HP; reduce the combined additional HP by exactly 20%.
+  // Apply this once after combining growth factors, not once per multiplier.
+  return 1 + (previousScale - 1) * WAVE_HEALTH_GROWTH_FACTOR;
+}
+
 function beginWave() {
   sound.wave();
   if (isMultiplayerGame()) {
@@ -2901,7 +3144,7 @@ function beginLocalWave(nextWave = state.wave + 1) {
   count = Math.ceil((count * coopScale.count * midPressure.count) / 5) * 5;
   if (state.wave === 1 && stage >= 10) count = Math.max(6, Math.floor(count * 0.6));
   const baseHp = 14 + stage * 5;
-  const waveHpScale = (1 + waveRamp * (2.25 + stage * 0.12)) * midPressure.hp;
+  const waveHpScale = waveHealthScale(stage, state.wave, state.currentLevel.waves);
   const speed = (37 + stage * 0.85 + waveRamp * (16 + stage * 0.7)) * midPressure.speed * 1.08;
   const spacing = Math.min(1.5, 1 + waveRamp * 0.3 + Math.max(0, stage - 1) * 0.012);
   const stagePressure = 1 + Math.min(0.08, Math.max(0, (stage - 1) * 0.006));
@@ -2920,13 +3163,14 @@ function beginLocalWave(nextWave = state.wave + 1) {
     const monster = monsterForSpawn(i);
     const heavy = monster.shape === "brute" || monster.shape === "armored";
     const tier = monster.tier || 0;
-    const monsterHpScale = monster.hp * (0.78 + waveRamp * (0.28 + tier * 0.04));
+    const monsterHpScale = monster.hp * 0.78;
+    const monsterWaveHpScale = waveHealthScale(stage, state.wave, state.currentLevel.waves, tier);
     const monsterSpeedScale = 1 + (monster.speed - 1) * (0.7 + waveRamp * 0.25);
     const monsterBaseDamage = Math.max(1, Math.round(monster.damage * (0.75 + waveRamp * 0.55)));
     state.spawns.push({
       t: spawnTime,
       pathIndex,
-      hp: hp * waveHpScale * monsterHpScale * stageCountScale,
+      hp: hp * monsterWaveHpScale * monsterHpScale * stageCountScale,
       speed: speed * coopScale.speed * monsterSpeedScale,
       reward: Math.round((9 + Math.floor(stage * 1.5)) * monster.reward * (1 + waveRamp * 0.4)),
       baseDamage: monsterBaseDamage,
@@ -3372,19 +3616,21 @@ function combatStatsForTower(tower) {
 function towerShotOrigin(tower) {
   // These coordinates match the visible weapon, crystal, coil, or effect drawn in drawTower.
   const anchors = {
-    dart: { x: 34, y: -14 },
-    ice: { x: 0, y: -43 },
-    spark: { x: 0, y: -44 },
-    sniper: { x: -37, y: -8 },
-    venom: { x: 1, y: -39 },
-    bank: { x: 0, y: -28 },
-    tesla: { x: 0, y: -47 },
-    ember: { x: 0, y: -47 },
-    barracks: { x: 11, y: -38 },
-    void: { x: 0, y: -43 },
-    ranger: { x: -25, y: -29 },
-    rail: { x: -34, y: -24 },
-    orbital: { x: 0, y: -47 },
+    dart: { x: 28, y: -24 },
+    ice: { x: -1, y: -59 },
+    spark: { x: 0, y: -51 },
+    sniper: { x: -29, y: -20 },
+    venom: { x: 0, y: -45 },
+    bank: { x: -2, y: -57 },
+    tesla: { x: 0, y: -50 },
+    ember: { x: 1, y: -48 },
+    haste: { x: 0, y: -32 },
+    power: { x: -2, y: -46 },
+    barracks: { x: 1, y: -43 },
+    void: { x: 0, y: -45 },
+    ranger: { x: -25, y: -38 },
+    rail: { x: -26, y: -17 },
+    orbital: { x: 0, y: -49 },
     laser: { x: 18, y: -18 },
     quake: { x: 0, y: -40 },
   };
@@ -3901,7 +4147,16 @@ function laneEntryPoint(path) {
 
 function drawBossWarning() {
   const spawn = state.spawns.find((s) => s.boss);
-  if (!spawn || !state.currentLevel) return;
+  if (!spawn || !state.currentLevel) {
+    drawBossWarning.motion = null;
+    return;
+  }
+  const now = performance.now();
+  const key = `${state.currentLevel.id}:${state.wave}:${spawn.bossName}:${spawn.pathIndex}`;
+  const seconds = Math.max(0, Math.ceil(spawn.t));
+  if (drawBossWarning.motion?.key !== key) drawBossWarning.motion = { key, started: now, tick: now, seconds };
+  const motion = drawBossWarning.motion;
+  if (motion.seconds !== seconds) { motion.seconds = seconds; motion.tick = now; }
   const path = state.currentLevel.paths[spawn.pathIndex];
   if (!path) return;
   const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
@@ -3939,18 +4194,36 @@ function drawBossWarning() {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("☠", p.x, p.y + 1);
-  ctx.font = "bold 13px sans-serif";
+  ctx.font = "bold 15px sans-serif";
   ctx.fillStyle = "#ffd7d2";
-  const label = `${spawn.bossName || "Boss"} in ${Math.max(0, Math.ceil(spawn.t))}s`;
+  const label = `${spawn.bossName || "Boss"} in ${seconds}s`;
   const labelX = canvas.width / 2;
-  const labelY = 42;
+  // Leave room above for a wave-bonus banner or the active boss health bar.
+  const labelY = els.bossBar.classList.contains("show") ? 210 : els.waveBonus.classList.contains("show") ? 145 : 100;
   ctx.strokeStyle = "#150808";
   ctx.lineWidth = 4;
   const maxLabelWidth = canvas.width - 48;
   const measured = ctx.measureText(label).width;
-  if (measured > maxLabelWidth) ctx.font = `bold ${Math.max(9, Math.floor(13 * maxLabelWidth / measured))}px sans-serif`;
-  ctx.strokeText(label, labelX, labelY, maxLabelWidth);
-  ctx.fillText(label, labelX, labelY, maxLabelWidth);
+  if (measured > maxLabelWidth) ctx.font = `bold ${Math.max(9, Math.floor(15 * maxLabelWidth / measured))}px sans-serif`;
+  const enter = Math.min(1, (now - motion.started) / 440);
+  const tick = Math.max(0, 1 - (now - motion.tick) / 240);
+  ctx.globalAlpha = Math.min(enter * 2, 1) * Math.min(1, Math.max(0, spawn.t) / .25);
+  ctx.translate(labelX, labelY - (reducedMotion.matches ? 0 : 16 * (1 - enter) ** 2));
+  const scale = reducedMotion.matches ? 1 : 1 - .14 * (1 - enter) ** 2 + .045 * Math.sin(tick * Math.PI);
+  ctx.scale(scale, scale);
+  const panelWidth = Math.min(maxLabelWidth, ctx.measureText(label).width) + 28;
+  ctx.fillStyle = "#210e14ee";
+  ctx.strokeStyle = "#ff7868";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(-panelWidth / 2, -18, panelWidth, 36, 10);
+  ctx.fill();
+  ctx.stroke();
+  ctx.strokeStyle = "#150808";
+  ctx.lineWidth = 3;
+  ctx.fillStyle = "#ffe5df";
+  ctx.strokeText(label, 0, 0, maxLabelWidth);
+  ctx.fillText(label, 0, 0, maxLabelWidth);
   ctx.restore();
 }
 
@@ -5609,13 +5882,15 @@ function drawVentProp(prop) {
 function drawTower(tower, options = {}) {
   ctx.save();
   ctx.translate(tower.x, tower.y);
+  const uiImage = towerUiImage(tower);
 
   if (state.selectedPlaced === tower || options.ghost) {
+    const ring = towerSelectionRing(tower.id);
     ctx.strokeStyle = options.blocked ? "#ec675d" : "#ffffff";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     if (options.ghost) ctx.setLineDash([6, 5]);
     ctx.beginPath();
-    ctx.arc(0, 0, 26, 0, Math.PI * 2);
+    ctx.ellipse(ring.x, ring.y, ring.radiusX, ring.radiusY, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -5639,17 +5914,16 @@ function drawTower(tower, options = {}) {
     ctx.globalAlpha = 1;
   }
 
-  ctx.fillStyle = "#0d1115";
-  ctx.beginPath();
-  ctx.ellipse(0, 16, 22, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const uiImage = towerUiImage(tower);
   if (uiImage) {
     drawTowerUiImage(tower, uiImage, options);
     ctx.restore();
     return;
   }
+
+  ctx.fillStyle = "#0d1115";
+  ctx.beginPath();
+  ctx.ellipse(0, 16, 22, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
 
   ctx.strokeStyle = "#111417";
   ctx.lineWidth = 3;
@@ -6047,27 +6321,28 @@ function drawTower(tower, options = {}) {
 function drawTowerUiImage(tower, img, options = {}) {
   const size = tower.id === "sniper" || tower.id === "orbital" ? 76 : tower.id === "rail" ? 68 : 70;
   const x = -size / 2;
-  const y = -size * 0.78;
-  const glow = tower.color || "#ffffff";
+  // Repaired sprites share a ground-contact baseline at pixel 240 of 256.
+  const y = -size * (240 / 256);
   ctx.save();
   ctx.globalAlpha = options.ghost ? 0.58 : 1;
-  ctx.shadowColor = glow;
-  ctx.shadowBlur = options.ghost ? 8 : 13;
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(7, 11, 14, .28)";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * .32, size * .055, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.filter = tower.id === "sniper" || tower.id === "rail" ? "brightness(1.15)" : "none";
-  if (tower.id === "tesla" || tower.id === "haste") {
-    const cropHeight = Math.floor((img.naturalHeight || 256) * 0.88);
-    ctx.drawImage(img, 0, 0, img.naturalWidth || 256, cropHeight, x, y, size, size * 0.88);
-  } else {
-    ctx.drawImage(img, x, y, size, size);
-  }
+  ctx.drawImage(img, x, y, size, size);
   ctx.filter = "none";
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
   ctx.restore();
 
   if (!options.ghost) {
-    if (tower.id === "sniper") drawMuzzleCharge(tower, -37, -8, "#ffe8ab", 0.85);
-    if (tower.id === "rail") drawMuzzleCharge(tower, -34, -24, "#9fd0ff", 1.1);
+    const muzzle = towerShotOrigin(tower);
+    if (tower.id === "sniper") drawMuzzleCharge(tower, muzzle.x - tower.x, muzzle.y - tower.y, "#ffe8ab", 0.85);
+    if (tower.id === "rail") drawMuzzleCharge(tower, muzzle.x - tower.x, muzzle.y - tower.y, "#9fd0ff", 1.1);
   }
 
   drawTowerLevelBadge(tower.level);
@@ -6385,6 +6660,14 @@ function drawMob(mob) {
   const eye = mob.boss ? "#ffe66b" : mob.monsterEye || "#ff5b55";
   const variant = monsterVariant(mob.monsterName || mob.bossName || shape);
 
+  if (drawGeneratedMob(mob, size)) {
+    if (!mob.portrait) {
+      drawMobStatusEffects(mob, size, eye);
+      drawMobHealthBar(mob, Math.ceil(size * 1.5) + 7);
+    }
+    return;
+  }
+
   ctx.save();
   ctx.translate(mob.x, mob.y);
 
@@ -6498,11 +6781,7 @@ function drawMob(mob) {
   if (mob.portrait) return;
 
   drawMobStatusEffects(mob, size, eye);
-
-  ctx.fillStyle = "#111417";
-  ctx.fillRect(mob.x - 18, mob.y - 24, 36, 5);
-  ctx.fillStyle = mob.hp / mob.maxHp > 0.45 ? "#79d77b" : "#ec675d";
-  ctx.fillRect(mob.x - 18, mob.y - 24, Math.max(0, 36 * (mob.hp / mob.maxHp)), 5);
+  drawMobHealthBar(mob);
 }
 
 function drawMobNameLabel(mob) {
@@ -6510,7 +6789,8 @@ function drawMobNameLabel(mob) {
   if (!name) return;
   const shape = mob.monsterShape || "normal";
   const size = mob.boss ? 22 : shape === "armored" || shape === "brute" ? 17 : shape === "runner" || shape === "winged" ? 13 : 14;
-  const y = mob.y - size - 18;
+  const topOffset = mobArtCell(name) ? Math.ceil(size * 1.5) + 17 : size + 18;
+  const y = mob.y - topOffset;
   ctx.save();
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = "source-over";
@@ -7388,7 +7668,7 @@ function updatePlacementPreview(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const nextX = ((clientX - rect.left) / rect.width) * canvas.width;
   const nextY = ((clientY - rect.top) / rect.height) * canvas.height;
-  const key = `${state.selectedTowerType}:${Math.round(nextX / 4)}:${Math.round(nextY / 4)}:${state.placed.length}`;
+  const key = `${state.selectedTowerType}:${nextX}:${nextY}:${state.placed.length}`;
   state.previewX = nextX;
   state.previewY = nextY;
   if (key === state.previewPlaceKey) return;
@@ -7396,8 +7676,20 @@ function updatePlacementPreview(clientX, clientY) {
   state.previewPlaceable = canPlaceTower(nextX, nextY);
 }
 
-function towerOverlaps(x, y) {
-  return state.placed.some((placed) => Math.hypot(placed.x - x, placed.y - y) < 38);
+function towerOverlaps(x, y, towerId = state.selectedTowerType) {
+  const ring = towerSelectionRing(towerId);
+  return state.placed.some((placed) => {
+    // Keep the existing minimum spacing, including for towers directly above/below.
+    if (Math.hypot(placed.x - x, placed.y - y) < 38) return true;
+    const other = towerSelectionRing(placed.id);
+    const dx = x + ring.x - placed.x - other.x;
+    const dy = y + ring.y - placed.y - other.y;
+    // Use the larger pedestal for both envelopes so even differently-sized
+    // ellipses cannot intersect diagonally. Drawing and placement share the data.
+    const width = 2 * Math.max(ring.radiusX, other.radiusX) + TOWER_BASE_CLEARANCE;
+    const height = 2 * Math.max(ring.radiusY, other.radiusY) + TOWER_BASE_CLEARANCE;
+    return (dx / width) ** 2 + (dy / height) ** 2 < 1;
+  });
 }
 
 function canPlaceTower(x, y) {
@@ -7416,7 +7708,7 @@ function towerTypeLimitStatus(towerId, placedTowers = ownPlacedTowers()) {
 }
 
 function placementStatus(x, y) {
-  if (towerOverlaps(x, y)) return { ok: false, message: "Towers cannot overlap" };
+  if (towerOverlaps(x, y)) return { ok: false, message: "Leave space between towers' white base circles" };
   const distance = distanceToRoads(x, y);
   if (distance < 46) return { ok: false, message: "Cannot place on roads" };
   return { ok: true, message: "" };
@@ -7499,7 +7791,7 @@ function upgradeSelected() {
   state.coins -= cost;
   tower.level += 1;
   sound.upgrade();
-  toast(`${tower.name} upgraded to L${tower.level}`);
+  toast(`${tower.name} upgraded to L${tower.level}`, "upgrade");
   updateHud();
 }
 
@@ -7813,7 +8105,33 @@ canvas.addEventListener("mouseleave", () => {
   state.previewY = null;
 });
 
+function setupBattlefieldLayout() {
+  const viewport = document.querySelector(".battle-viewport");
+  const map = document.querySelector(".battle-map");
+  const fitMap = () => {
+    // One shared scale preserves the original 1000x650 world in both axes.
+    // Resize the actual canvas element, not object-fit, so pointer coordinates
+    // still map directly to its visible content without letterbox offsets.
+    const width = viewport.clientWidth;
+    const height = viewport.clientHeight;
+    if (!width || !height) return;
+    const scale = Math.min(width / canvas.width, height / canvas.height);
+    map.style.width = `${canvas.width * scale}px`;
+    map.style.height = `${canvas.height * scale}px`;
+    const bounds = canvas.getBoundingClientRect();
+    document.body.style.setProperty("--battle-map-width", `${bounds.width}px`);
+    document.body.style.setProperty("--battle-map-center", `${bounds.left + bounds.width / 2}px`);
+    document.body.style.setProperty("--battle-map-bottom-gap", `${Math.max(0, innerHeight - bounds.bottom)}px`);
+  };
+  const observer = new ResizeObserver(fitMap);
+  observer.observe(viewport);
+  window.addEventListener("resize", fitMap);
+  fitMap();
+}
+
+setupBattlefieldLayout();
 load();
+preloadMobArt();
 preloadTowerUiImages();
 preloadStageBackgrounds();
 setupMultiplayer();

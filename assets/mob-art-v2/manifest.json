@@ -1,0 +1,496 @@
+{
+  "version": 2,
+  "image": "sprites.webp",
+  "cellSize": 256,
+  "columns": 8,
+  "sprites": [
+    {
+      "name": "Mudling",
+      "boss": false,
+      "x": 0,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Mossback",
+      "boss": false,
+      "x": 256,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Rot Grub",
+      "boss": false,
+      "x": 512,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Marrow Hulk",
+      "boss": false,
+      "x": 768,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Thunder Brute",
+      "boss": false,
+      "x": 1024,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Doom Hulk",
+      "boss": false,
+      "x": 1280,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Root Mauler",
+      "boss": false,
+      "x": 1536,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Tar Blob",
+      "boss": false,
+      "x": 1792,
+      "y": 0,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Magma Ox",
+      "boss": false,
+      "x": 0,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Rust Crawler",
+      "boss": false,
+      "x": 256,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Coal Golem",
+      "boss": false,
+      "x": 512,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Iron Mite",
+      "boss": false,
+      "x": 768,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Stonejaw",
+      "boss": false,
+      "x": 1024,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Lava Guard",
+      "boss": false,
+      "x": 1280,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Shell Bug",
+      "boss": false,
+      "x": 1536,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Grave Worm",
+      "boss": false,
+      "x": 1792,
+      "y": 256,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Bone Knight",
+      "boss": false,
+      "x": 0,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Briar Imp",
+      "boss": false,
+      "x": 256,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Cinder Hound",
+      "boss": false,
+      "x": 512,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Blood Skitter",
+      "boss": false,
+      "x": 768,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Dread Stalker",
+      "boss": false,
+      "x": 1024,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Bog Runner",
+      "boss": false,
+      "x": 1280,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Hell Pup",
+      "boss": false,
+      "x": 1536,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Dust Rat",
+      "boss": false,
+      "x": 1792,
+      "y": 512,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Soot Skipper",
+      "boss": false,
+      "x": 0,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Acid Nibbler",
+      "boss": false,
+      "x": 256,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Ash Sprite",
+      "boss": false,
+      "x": 512,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Shardling",
+      "boss": false,
+      "x": 768,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Plague Bat",
+      "boss": false,
+      "x": 1024,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Phase Imp",
+      "boss": false,
+      "x": 1280,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Storm Wisp",
+      "boss": false,
+      "x": 1536,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Moon Bat",
+      "boss": false,
+      "x": 1792,
+      "y": 768,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Gloom Bat",
+      "boss": false,
+      "x": 0,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Ember Moth",
+      "boss": false,
+      "x": 256,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Rune Wisp",
+      "boss": false,
+      "x": 512,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Feral Wisp",
+      "boss": false,
+      "x": 768,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Needle Fiend",
+      "boss": false,
+      "x": 1024,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Frost Wretch",
+      "boss": false,
+      "x": 1280,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Gear Imp",
+      "boss": false,
+      "x": 1536,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Void Leech",
+      "boss": false,
+      "x": 1792,
+      "y": 1024,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Thornback",
+      "boss": false,
+      "x": 0,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Night Shard",
+      "boss": false,
+      "x": 256,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Final Horror",
+      "boss": false,
+      "x": 512,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Glass Imp",
+      "boss": false,
+      "x": 768,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Crystal Creep",
+      "boss": false,
+      "x": 1024,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Hook Fiend",
+      "boss": false,
+      "x": 1280,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Grimjaw",
+      "boss": true,
+      "x": 1536,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Nightclaw",
+      "boss": true,
+      "x": 1792,
+      "y": 1280,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Bonehide",
+      "boss": true,
+      "x": 0,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Ashmaw",
+      "boss": true,
+      "x": 256,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Frostfang",
+      "boss": true,
+      "x": 512,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Rotspike",
+      "boss": true,
+      "x": 768,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Ironhorn",
+      "boss": true,
+      "x": 1024,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Bloodwing",
+      "boss": true,
+      "x": 1280,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Voidbite",
+      "boss": true,
+      "x": 1536,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Dreadeye",
+      "boss": true,
+      "x": 1792,
+      "y": 1536,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Stoneback",
+      "boss": true,
+      "x": 0,
+      "y": 1792,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Venomlord",
+      "boss": true,
+      "x": 256,
+      "y": 1792,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Stormskull",
+      "boss": true,
+      "x": 512,
+      "y": 1792,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "Hellgrin",
+      "boss": true,
+      "x": 768,
+      "y": 1792,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "name": "The Last Horror",
+      "boss": true,
+      "x": 1024,
+      "y": 1792,
+      "width": 256,
+      "height": 256
+    }
+  ]
+}

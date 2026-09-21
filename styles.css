@@ -13,6 +13,7 @@
   --gold: #f3c64f;
   --green: #68db76;
   --red: #ef625c;
+  --battle-sidebar-width: clamp(270px, 16vw, 300px);
 }
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; }
@@ -460,13 +461,16 @@ h1, h2, h3, p { margin-top: 0; }
 
 /* Game */
 #game { background: #070b0e; }
+#game.active { display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .gamebar {
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 96px;
   height: 96px;
-  padding: 10px max(18px, calc((100vw - 1600px) / 2));
+  padding: 10px 18px;
+  min-width: 0;
+  overflow-x: auto;
   border-bottom: 1px solid #33424c;
   background: #040709;
 }
@@ -487,27 +491,48 @@ h1, h2, h3, p { margin-top: 0; }
 #speedToggle, #startWave, #leaveMatch { min-height: 49px; white-space: nowrap; }
 .battle-wrap {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1000px);
-  justify-content: center;
-  align-items: start;
-  height: calc(100vh - 96px);
-  overflow: auto;
+  grid-template-columns: var(--battle-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 .game-tools {
   grid-row: 1;
-  width: 300px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
   height: 100%;
   padding: 15px;
   overflow: auto;
   border-radius: 0;
 }
 .game-tools h3 { margin: 3px 0 12px; font-size: 24px; }
+.battle-viewport {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #080e12;
+}
+.battle-map {
+  position: relative;
+  width: 0;
+  height: 0;
+  aspect-ratio: 1000 / 650;
+  flex: none;
+}
 #gameCanvas {
-  grid-row: 1;
   display: block;
   width: 100%;
-  max-width: 1000px;
-  aspect-ratio: 1000 / 650;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  aspect-ratio: auto;
   background: black;
   touch-action: none;
 }
@@ -529,6 +554,7 @@ h1, h2, h3, p { margin-top: 0; }
 .battle-card-info b { overflow: hidden; color: var(--tc, var(--text)); font-size: 19px; text-overflow: ellipsis; white-space: nowrap; }
 .battle-card-cost { color: var(--gold); }
 .selected-info {
+  container-type: inline-size;
   margin-top: 12px;
   padding: 10px;
   overflow-wrap: anywhere;
@@ -540,34 +566,49 @@ h1, h2, h3, p { margin-top: 0; }
 .selected-title { color: var(--tc, var(--text)); font-size: 20px; font-weight: 900; }
 .selection-meta, .upgrade-costs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .selection-meta span, .upgrade-costs span { min-width: 0; padding: 6px; border-radius: 8px; background: #202a31; }
-.selection-grid, .upgrade-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; }
-.upgrade-grid { grid-template-columns: minmax(0, 1fr) auto auto; }
-.selection-grid > *, .upgrade-grid > * { min-width: 0; padding: 3px; }
+.selection-grid, .upgrade-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px 6px;
+  font-size: clamp(10px, 8cqi, 15px);
+  line-height: 1.4;
+  align-items: baseline;
+}
+.upgrade-grid { grid-template-columns: max-content repeat(2, minmax(0, 1fr)); }
+.selection-grid > *, .upgrade-grid > * {
+  min-width: 0;
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.selection-grid b, .upgrade-grid b { text-align: right; font-variant-numeric: tabular-nums; }
 .selection-grid b, .upgrade-grid b { color: var(--text); }
 .upgrade-grid .after { color: var(--green); }
 .selection-note { margin-top: 8px; padding: 8px; border-radius: 8px; background: #1d262d; line-height: 1.32; }
 .game-tools > button { width: 100%; margin-top: 9px; }
 .boss-bar {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
   position: absolute;
   z-index: 12;
-  top: 105px;
+  top: 9px;
   left: 50%;
   width: min(520px, 55vw);
   padding: 9px 12px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -12px) scale(.96);
+  transition: opacity .25s ease, transform .4s cubic-bezier(.2,1.4,.4,1);
   border: 1px solid #7e3537;
   border-radius: 10px;
   background: #171d22eF;
 }
-.boss-bar.show { display: block; }
+.boss-bar.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 .boss-bar-head { display: flex; justify-content: space-between; }
 .boss-bar-track { height: 8px; margin-top: 4px; overflow: hidden; border-radius: 8px; background: #3a2425; }
 #bossHpFill { height: 100%; background: var(--red); }
 .wave-bonus {
   position: absolute;
   z-index: 13;
-  top: 112px;
+  top: 16px;
   left: 50%;
   width: max-content;
   max-width: min(680px, 70vw);
@@ -598,8 +639,24 @@ h1, h2, h3, p { margin-top: 0; }
 .code-note-close { position: absolute; z-index: 2; right: 10px; top: 10px; }
 .code-note-paper { display: grid; gap: 15px; width: min(680px, 80vw); padding: 55px; border-radius: 8px; color: #302511; background: #d6bd82; }
 .code-note-row { display: grid; gap: 4px; }
-.toast { position: fixed; z-index: 100; bottom: 28px; left: 50%; padding: 12px 20px; transform: translateX(-50%); border-radius: 10px; background: #11191f; opacity: 0; transition: opacity .2s; }
+.toast { position: fixed; z-index: 100; bottom: 28px; left: 50%; padding: 12px 20px; transform: translateX(-50%); border-radius: 10px; background: #11191f; opacity: 0; }
 .toast.show { opacity: 1; }
+.toast, .wave-bonus {
+  --notice-accent: #90caff;
+  border: 1px solid #536673;
+  border-left: 4px solid var(--notice-accent);
+  box-shadow: 0 8px 24px #0006;
+  pointer-events: none;
+  text-align: center;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+.toast { width: max-content; max-width: min(680px, calc(100vw - 32px)); }
+.toast.game-toast { max-width: min(680px, calc(var(--battle-map-width, 100vw) - 32px)); bottom: calc(var(--battle-map-bottom-gap, 0px) + 28px); }
+.toast-discovery { --notice-accent: #65ffe4; background: linear-gradient(120deg, #173837, #101c23); }
+.toast-upgrade { --notice-accent: #94e579; background: linear-gradient(120deg, #243923, #111d23); }
+.toast-reward, .wave-bonus { --notice-accent: #ffd35a; background: linear-gradient(120deg, #39301b, #171e22); }
+.toast-boss { --notice-accent: #ff7565; background: linear-gradient(120deg, #492028, #21151e); font-weight: 850; }
 
 /* Laptop keeps the polished full-window layout. */
 body.laptop-layout #app { width: 100vw; height: 100vh; }
@@ -621,6 +678,16 @@ body.mobile-layout #app {
   background: #0b1014;
   box-shadow: 0 30px 80px #000;
 }
+/* Keep the decorative menu frame out of the live battlefield. */
+body.mobile-layout:has(#game.active) { padding: 0; }
+body.mobile-layout:has(#game.active) #app {
+  width: 100vw;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+body.mobile-layout:has(#game.active) #app::before { display: none; }
 body.mobile-layout #app::before {
   content: "";
   position: absolute;
@@ -705,11 +772,12 @@ body.mobile-layout .mob-stage-list, body.mobile-layout .mob-stat { padding: 2px;
 body.mobile-layout .mob-stage-list small, body.mobile-layout .mob-stat small { font-size: 6px; }
 body.mobile-layout .mob-stat-grid { gap: 2px; }
 
+body.mobile-layout { --battle-sidebar-width: clamp(130px, 16vw, 180px); }
 body.mobile-layout .gamebar {
   gap: 6px;
   min-height: 55px;
   height: 55px;
-  padding: 4px max(6px, calc((100% - 1320px) / 2));
+  padding: 4px 6px;
 }
 body.mobile-layout .gamebar > div:nth-of-type(1) { flex-basis: clamp(76px, 9vw, 110px); }
 body.mobile-layout .gamebar h2 { font-size: clamp(11px, 1.25vw, 16px); }
@@ -724,10 +792,6 @@ body.mobile-layout #leaveMatch {
   padding: 5px 7px;
   font-size: clamp(7px, .85vw, 11px);
 }
-body.mobile-layout .battle-wrap {
-  grid-template-columns: clamp(120px, 15vw, 170px) minmax(440px, 1000px);
-  height: calc(100% - 55px);
-}
 body.mobile-layout .game-tools { width: auto; padding: 5px; border-radius: 0; }
 body.mobile-layout .game-tools h3 { margin-bottom: 4px; font-size: 14px; }
 body.mobile-layout .battle-loadout { gap: 4px; }
@@ -738,12 +802,12 @@ body.mobile-layout .selected-info { margin-top: 5px; padding: 4px; border-left-w
 body.mobile-layout .selected-title { font-size: 10px; }
 body.mobile-layout .selection-meta, body.mobile-layout .upgrade-costs { gap: 2px; margin: 3px 0; }
 body.mobile-layout .selection-meta span, body.mobile-layout .upgrade-costs span { padding: 2px; }
-body.mobile-layout .selection-grid, body.mobile-layout .upgrade-grid { gap: 1px 3px; }
-body.mobile-layout .selection-grid > *, body.mobile-layout .upgrade-grid > * { padding: 1px; }
+body.mobile-layout .selection-grid, body.mobile-layout .upgrade-grid { gap: 2px 3px; font-size: clamp(6px, 6.3cqi, 7px); }
+body.mobile-layout .selection-grid > *, body.mobile-layout .upgrade-grid > * { padding: 1px 0; }
 body.mobile-layout .selection-note { margin-top: 3px; padding: 3px; line-height: 1.2; }
 body.mobile-layout .game-tools > button { min-height: 24px; margin-top: 3px; padding: 2px; font-size: 7px; }
-body.mobile-layout .boss-bar { top: 59px; width: 42%; padding: 4px 7px; font-size: 8px; }
-body.mobile-layout .wave-bonus { top: 60px; max-width: 55%; padding: 4px 7px; font-size: 8px; }
+body.mobile-layout .boss-bar { top: 4px; width: 42%; padding: 4px 7px; font-size: 8px; }
+body.mobile-layout .wave-bonus { top: 5px; max-width: 55%; padding: 4px 7px; font-size: 8px; }
 body.mobile-layout .result-card { width: 75%; max-height: 75%; padding: 20px; }
 body.mobile-layout .result-card h2 { margin-bottom: 15px; font-size: 48px; }
 body.mobile-layout .result-rewards span { gap: 4px; padding: 7px; font-size: 10px; }
@@ -755,8 +819,7 @@ body.mobile-layout .result-rewards b { font-size: 20px; }
   .gamebar { gap: 7px; }
   .stats { gap: 5px; }
   .stats > span, #speedToggle, #startWave, #leaveMatch { padding: 10px 11px; font-size: 14px; }
-  .battle-wrap { grid-template-columns: 230px minmax(520px, 1000px); }
-  .game-tools { width: 230px; }
+  body:not(.mobile-layout) { --battle-sidebar-width: clamp(230px, 23vw, 260px); }
 }
 @media (orientation: portrait) and (pointer: coarse) {
   body::after {
@@ -824,8 +887,6 @@ button.primary:hover:not(:disabled), .play-button:hover:not(:disabled) {
 .level-card { min-height: 205px; }
 .level-action { margin-top: 18px; }
 
-.battle-wrap { grid-template-columns: 240px minmax(0, 1000px); }
-.game-tools { width: 240px; }
 .game-tools h3 { margin: 2px 0 8px; font-size: 20px; }
 .battle-card {
   grid-template-columns: 62px minmax(0, 1fr);
@@ -878,9 +939,6 @@ body.mobile-layout .level-list { grid-template-columns: repeat(4, minmax(0, 1fr)
 body.mobile-layout .level-card { min-height: 112px; }
 body.mobile-layout .level-action { margin-top: 8px; }
 body.mobile-layout .daily-reward { min-height: clamp(76px, 17vh, 108px); }
-body.mobile-layout .battle-wrap {
-  grid-template-columns: clamp(104px, 12.5vw, 142px) minmax(440px, 1000px);
-}
 body.mobile-layout .game-tools h3 { font-size: 12px; }
 body.mobile-layout .battle-card {
   grid-template-columns: 31px minmax(0, 1fr);
@@ -891,10 +949,6 @@ body.mobile-layout .battle-card {
 body.mobile-layout .battle-card-art { width: 31px; height: 31px; }
 body.mobile-layout .battle-card-info b { font-size: 8px; }
 
-@media (max-width: 1120px) and (pointer: fine) {
-  .battle-wrap { grid-template-columns: 205px minmax(520px, 1000px); }
-  .game-tools { width: 205px; }
-}
 
 /* Interaction, motion, and completion polish. */
 button > *, .button-label { pointer-events: none; }
@@ -936,44 +990,25 @@ button > *, .button-label { pointer-events: none; }
 
 .spark-field {
   position: absolute;
-  bottom: -5vh;
-  width: 50vw;
-  height: 105vh;
+  inset: 0;
+  pointer-events: none;
 }
 .spark-field::before,
 .spark-field::after {
-  content: "";
+  content: none;
+}
+.spark-field > i {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 3px;
-  height: 8px;
-  border-radius: 60% 60% 45% 45%;
-  background: #ffd28a;
-  box-shadow:
-    3vw -3vh #ff9a3d, 7vw -18vh #ffd17a, 11vw -7vh #e85f20,
-    15vw -31vh #ffb34b, 19vw -12vh #ff7b2b, 24vw -44vh #ffd895,
-    29vw -22vh #f27628, 34vw -55vh #ffad45, 39vw -10vh #ffd07a,
-    44vw -38vh #ff8a35, 48vw -67vh #ffc264;
-  filter: drop-shadow(0 0 4px #ff6b22);
-  transform: rotate(10deg);
+  bottom: -3vh;
+  left: var(--x);
+  width: var(--size, 3.5px);
+  height: calc(var(--size, 3.5px) * 1.6);
+  border-radius: 45%;
+  background: var(--color, #ffbd70);
+  box-shadow: 0 0 4px #ff9d4899, 0 0 8px #f7772844;
+  opacity: 0;
+  animation: emberUp var(--duration) linear var(--delay) infinite normal;
 }
-.spark-field::after {
-  width: 2px;
-  height: 6px;
-  opacity: .72;
-  box-shadow:
-    2vw -9vh #ffd28a, 6vw -36vh #ff7b2b, 10vw -17vh #ffb34b,
-    14vw -58vh #ffd895, 21vw -28vh #e85f20, 27vw -72vh #ffbd59,
-    33vw -45vh #ff8c32, 39vw -81vh #ffe0a1, 46vw -23vh #f27628;
-  transform: translateX(2vw) rotate(-8deg) scale(.75);
-}
-.spark-a { left: 0; }
-.spark-b { right: 0; transform: scaleX(-1); }
-.spark-a::before { animation: emberMeander 7.2s ease-out -1.4s infinite; }
-.spark-a::after { animation: emberGust 14.8s ease-in-out -10.2s infinite; }
-.spark-b::before { animation: emberFlutter 9.1s ease-in-out -5.3s infinite; }
-.spark-b::after { animation: emberGust 18.5s ease-in-out -2.7s infinite reverse; }
 
 .smoke-cloud {
   position: absolute;
@@ -1012,28 +1047,14 @@ button > *, .button-label { pointer-events: none; }
   animation: dustBreathe 7s ease-in-out infinite alternate;
 }
 
-@keyframes emberMeander {
-  0% { opacity: 0; transform: translate3d(0, 5vh, 0) rotate(7deg) scale(.65); }
-  10% { opacity: .9; }
-  34% { transform: translate3d(2.5vw, -24vh, 0) rotate(-8deg) scale(.9); }
-  57% { opacity: .35; transform: translate3d(-1vw, -43vh, 0) rotate(12deg) scale(.7); }
-  76% { opacity: .82; transform: translate3d(3vw, -64vh, 0) rotate(-5deg) scale(.55); }
-  100% { opacity: 0; transform: translate3d(1vw, -94vh, 0) rotate(9deg) scale(.25); }
-}
-@keyframes emberFlutter {
-  0% { opacity: 0; transform: translate3d(1vw, 3vh, 0) rotate(-12deg) scale(.45); }
-  8% { opacity: .75; }
-  26% { transform: translate3d(-3vw, -18vh, 0) rotate(15deg) scale(.8); }
-  49% { opacity: .9; transform: translate3d(2vw, -40vh, 0) rotate(-9deg) scale(.62); }
-  71% { opacity: .28; transform: translate3d(-1vw, -63vh, 0) rotate(18deg) scale(.5); }
-  100% { opacity: 0; transform: translate3d(4vw, -88vh, 0) rotate(-4deg) scale(.2); }
-}
-@keyframes emberGust {
-  0%, 48% { opacity: 0; transform: translate3d(-2vw, 8vh, 0) rotate(15deg) scale(.45); }
-  55% { opacity: .95; }
-  67% { opacity: .72; transform: translate3d(6vw, -35vh, 0) rotate(-16deg) scale(1); }
-  82% { opacity: .5; transform: translate3d(-3vw, -74vh, 0) rotate(11deg) scale(.6); }
-  100% { opacity: 0; transform: translate3d(8vw, -118vh, 0) rotate(-8deg) scale(.15); }
+/* Only endpoints set position: linear timing gives constant upward velocity.
+   Each individual ember fades out before its invisible reset below the screen. */
+@keyframes emberUp {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  4% { opacity: var(--glow, .95); }
+  94% { opacity: var(--glow, .95); }
+  99%, 100% { opacity: 0; }
+  100% { transform: translate3d(var(--drift), -108vh, 0); }
 }
 @keyframes smokeDrift {
   from { transform: translate3d(-2vw, 2vh, 0) scale(.95); opacity: .12; }
@@ -1074,6 +1095,7 @@ button > *, .button-label { pointer-events: none; }
   .smoke-cloud,
   .blast,
   .foreground-dust { animation: none; }
+  .spark-field > i { display: none; animation: none; }
 }
 
 .home-status > span {
@@ -1144,15 +1166,17 @@ button > *, .button-label { pointer-events: none; }
 }
 
 .wave-bonus {
-  left: calc(50% + 120px);
+  left: 50%;
   opacity: 0;
   pointer-events: none;
-  transition: opacity .28s ease, transform .28s ease;
-  transform: translate(-50%, -5px);
+  transform: translate(-50%, 0);
 }
 .wave-bonus.show { opacity: 1; transform: translate(-50%, 0); }
-.boss-bar { left: calc(50% + 120px); }
-.toast.game-toast { left: calc(50% + 120px); }
+.boss-bar { left: 50%; }
+.toast.game-toast { left: var(--battle-map-center, calc(50% + var(--battle-sidebar-width) / 2)); }
+@media (prefers-reduced-motion: reduce) {
+  .boss-bar { transform: translateX(-50%); transition: opacity .15s ease; }
+}
 
 .result-card {
   position: relative;
@@ -1221,9 +1245,6 @@ button > *, .button-label { pointer-events: none; }
   transform: scale(.9);
   transform-origin: center;
 }
-.tower-card-art[src*="/tesla.png"],
-.tower-card-art[src*="/haste.png"] { clip-path: inset(0 0 12% 0); }
-.tower-card-art[src*="/rail.png"] { transform: scale(.78); }
 .tower-card-art[src*="/sniper.png"],
 .tower-card-art[src*="/rail.png"] {
   filter: brightness(1.15) drop-shadow(0 10px 7px #0009);
@@ -1233,9 +1254,6 @@ button > *, .button-label { pointer-events: none; }
 .loadout-slot img[src*="/sniper.png"],
 .loadout-slot img[src*="/rail.png"] { filter: brightness(1.15); }
 
-body.mobile-layout .wave-bonus,
-body.mobile-layout .boss-bar { left: calc(50% + clamp(52px, 6.25vw, 71px)); }
-body.mobile-layout .toast.game-toast { left: calc(50% + clamp(52px, 6.25vw, 71px)); }
 body.mobile-layout .home-status > span { gap: 3px; }
 body.mobile-layout .stage-stars { gap: 2px; margin: -1px 0 3px; font-size: 10px; }
 body.mobile-layout .mode-option { min-height: 76px; padding: 9px; }
@@ -1249,3 +1267,78 @@ body.mobile-layout .tower-card-head {
 }
 body.mobile-layout .tower-card-head h3 { margin-right: 0; }
 body.mobile-layout .tower-card-art { width: 54px; height: 54px; }
+
+/* Boss encounter HUD and wave reward presentation. */
+.boss-bar {
+  width: min(560px, calc(100% - 32px));
+  padding: 12px 16px 14px;
+  border: 1px solid #ad514d;
+  border-top: 3px solid #ff9a73;
+  background: linear-gradient(115deg, #391d28f5, #171d2bf5 62%, #241820f5);
+  box-shadow: 0 10px 30px #0008, inset 0 1px #ffd5bf24;
+}
+.boss-bar-head { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 11px; }
+.boss-emblem {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border: 1px solid #fc896a; border-radius: 10px;
+  color: #ffe2c2; background: linear-gradient(145deg, #913b40, #2c1825);
+  font-size: 28px; text-shadow: 0 0 12px #ff8b68;
+}
+.boss-identity, .boss-vitals { display: grid; gap: 2px; min-width: 0; }
+.boss-identity small, .boss-vitals small { color: #f0a795; font-size: 9px; font-weight: 850; letter-spacing: .2em; }
+#bossName { display: block; color: #fff2e8; font-size: clamp(16px, 1.6vw, 24px); font-weight: 950; letter-spacing: .035em; line-height: 1.12; overflow-wrap: anywhere; text-shadow: 0 2px #38181d, 0 0 18px #ff795346; transform-origin: left center; }
+.boss-vitals { text-align: right; }
+#bossHpText { white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 14px; }
+#bossHpText > span { color: #bdaeb7; font-size: 11px; }
+#bossHpCurrent { display: inline-block; color: #fff4ed; font-size: 18px; }
+.boss-bar-track { position: relative; height: 12px; margin-top: 10px; border: 1px solid #ffffff20; background: #100e18; box-shadow: inset 0 2px 4px #0009; }
+#bossHpFill, #bossHpTrail { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: inherit; }
+/* No delay: rapid damage must not keep postponing the trail's movement. */
+#bossHpTrail { background: #ffcd91; transition: width .3s ease-out; }
+#bossHpFill { overflow: hidden; background: linear-gradient(90deg, #aa294b, #f35660 65%, #ff9975); box-shadow: 0 0 10px #ff635c88; transition: none; }
+.boss-bar.show #bossHpFill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, #fff8 50%, transparent 65%); animation: bossHealthShine 3.4s ease-in-out infinite; }
+.boss-bar.show .boss-emblem { animation: bossEmblemReveal .65s cubic-bezier(.2,1.5,.4,1) both; }
+.boss-bar.critical #bossHpFill { background: linear-gradient(90deg, #cf2646, #ff8366); }
+.boss-bar.critical .boss-emblem { animation: bossCriticalGlow 1.7s ease-in-out infinite; }
+.wave-bonus {
+  display: flex; align-items: center; justify-content: center; gap: 13px;
+  padding: 12px 24px 12px 14px; overflow: hidden;
+  min-width: 240px; max-width: min(580px, calc(100% - 32px));
+  border: 1px solid #c6993b; border-left: 4px solid #ffe295;
+  background: linear-gradient(115deg, #493819f5, #201f28f5 70%);
+}
+.wave-bonus:empty { display: none; }
+.wave-reward-emblem { display: grid; place-items: center; flex: 0 0 44px; height: 44px; color: #fff1b0; background: radial-gradient(circle, #a17a26, #392717 70%); border: 1px solid #f2c965; border-radius: 50%; font-size: 32px; text-shadow: 0 0 10px #ffcf68; animation: rewardEmblemSpin .8s cubic-bezier(.2,1.4,.4,1) both; }
+.wave-reward-copy { display: grid; gap: 1px; text-align: left; }
+.wave-reward-copy small { color: #eccc8f; font-size: 10px; font-weight: 850; letter-spacing: .2em; }
+.wave-reward-copy strong { color: #ffe59a; font-size: 28px; font-weight: 950; line-height: 1.2; text-shadow: 0 2px #513812, 0 0 18px #f9c54c55; animation: rewardTextReveal .55s ease-out both; }
+.wave-reward-count { display: inline-block; min-width: 3ch; font-variant-numeric: tabular-nums; }
+.wave-reward-unit { color: #fff3d1; font-size: 13px; letter-spacing: .08em; }
+.wave-reward-shine { position: absolute; inset: -30px; pointer-events: none; background: linear-gradient(110deg, transparent 40%, #fff3 50%, transparent 60%); animation: rewardShine .95s ease-out .12s both; }
+.boss-bar.show + .wave-bonus { top: auto; bottom: 100px; }
+@keyframes bossHealthShine { 0%, 25% { transform: translateX(-120%); } 75%, 100% { transform: translateX(120%); } }
+@keyframes bossEmblemReveal { from { opacity: 0; transform: scale(.4) rotate(-25deg); } to { opacity: 1; transform: none; } }
+@keyframes bossCriticalGlow { 0%, 100% { opacity: 1; } 50% { opacity: .65; } }
+@keyframes rewardEmblemSpin { from { opacity: 0; transform: scale(.3) rotate(-120deg); } to { opacity: 1; transform: none; } }
+@keyframes rewardTextReveal { from { opacity: 0; transform: translateY(8px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes rewardShine { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+body.mobile-layout .boss-bar { width: min(440px, calc(100% - 24px)); padding: 6px 9px 8px; }
+body.mobile-layout .boss-bar-head { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 7px; }
+body.mobile-layout .boss-emblem { width: 27px; height: 27px; font-size: 20px; border-radius: 7px; }
+body.mobile-layout .boss-identity small, body.mobile-layout .boss-vitals small { font-size: 7px; }
+body.mobile-layout #bossName { font-size: 14px; }
+body.mobile-layout #bossHpCurrent { font-size: 13px; }
+body.mobile-layout #bossHpText > span { font-size: 9px; }
+body.mobile-layout .boss-bar-track { height: 8px; margin-top: 6px; }
+body.mobile-layout .wave-bonus { padding: 7px 14px 7px 9px; min-width: 190px; gap: 9px; }
+body.mobile-layout .wave-reward-emblem { flex-basis: 31px; height: 31px; font-size: 23px; }
+body.mobile-layout .wave-reward-copy small { font-size: 8px; }
+body.mobile-layout .wave-reward-copy strong { font-size: 20px; }
+body.mobile-layout .wave-reward-unit { font-size: 10px; }
+body.mobile-layout .boss-bar.show + .wave-bonus { bottom: 88px; }
+@media (prefers-reduced-motion: reduce) {
+  .boss-bar.show #bossHpFill::after, .boss-bar.show .boss-emblem,
+  .wave-reward-emblem, .wave-reward-copy strong, .wave-reward-shine { animation: none; }
+  .wave-reward-shine { display: none; }
+  #bossHpFill, #bossHpTrail { transition: none; }
+}

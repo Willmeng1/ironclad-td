@@ -1,0 +1,132 @@
+{
+  "mode": "built-in image generator (model selection not exposed)",
+  "transparencyEdit": "Use case: background-extraction. EDIT TARGET: the supplied monster sprite atlas. Remove ONLY the painted grey/white checkerboard background and make it genuine transparent alpha. The checkerboard visible in this image is NOT transparent and must be completely removed, including gaps inside wings, between legs, and around tails. Preserve exactly the same monster designs, colors, faces, positions, sizes, count, grid arrangement and aspect ratio. Do not redraw the monsters, no restyling, no added shadows, no replacement background. Deliver a PNG with actual transparency, empty pixels alpha=0. No checkerboard pattern in the delivered pixel colors.",
+  "groups": [
+    {
+      "key": "Brutes",
+      "cols": 3,
+      "rows": 3,
+      "names": [
+        "Mudling",
+        "Mossback",
+        "Rot Grub",
+        "Marrow Hulk",
+        "Thunder Brute",
+        "Doom Hulk",
+        "Root Mauler",
+        "Tar Blob",
+        "Magma Ox"
+      ],
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-ca54c920-0f8e-4c8b-b586-cc42821ec241.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent PNG game sprite atlas, NOT a poster.\nCreate exactly NINE distinct simple monster sprites for Ironclad TD, a casual fantasy tower defense game. Simple polished 2D hand-painted/cel-shaded cartoon game art, chunky readable shapes, dark brown thin outlines, two or three tones per surface, soft top-left lighting. Modest detail, not advanced/overdesigned, not photorealistic, no elaborate armor filigree or VFX. Clear lively silhouettes readable at 40px. Full body, slight elevated three-quarter view, generally facing lower right. Small mischievous monsters, not gory.\nLayout: a SQUARE image precisely divided into a 3-column by 3-row equal-cell grid, no drawn grid lines. Each monster centered within its cell, maximum 70% cell width and 72% cell height with fully transparent padding on all sides. No labels, letters, numbers, ground, shadows outside the creature, backdrop, platforms or detached objects. True transparent alpha background, not checkerboard drawn into image. All limbs wholly inside own cell.\nExact cell order, row-major:\nRow 1: 1 Mudling, squat brown mud creature with stubby arms and orange eyes; 2 Mossback, round green moss-covered rock beast with broad shoulders; 3 Rot Grub, olive green plump grub with short feet and two tiny feelers.\nRow 2: 4 Marrow Hulk, stocky ivory bone golem with oversized bony forearms; 5 Thunder Brute, blue-grey muscular round brute with two simple cyan lightning-shaped horns; 6 Doom Hulk, burgundy heavy monster with pink shoulder ridges and yellow eyes.\nRow 3: 7 Root Mauler, chunky tree-root monster with leafy shoulders and root fists; 8 Tar Blob, dark brown glossy blob with bright amber eyes and two short arms, strong brown edge highlights so not invisible; 9 Magma Ox, squat rust-red ox beast with large cream horns and a few orange lava cracks.\nExactly one independent monster per cell. Do not add any extra monsters. Cohesive collectible game sprites, approachable but threatening, simple readable design."
+    },
+    {
+      "key": "Armored",
+      "cols": 4,
+      "rows": 2,
+      "names": [
+        "Rust Crawler",
+        "Coal Golem",
+        "Iron Mite",
+        "Stonejaw",
+        "Lava Guard",
+        "Shell Bug",
+        "Grave Worm",
+        "Bone Knight"
+      ],
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-d7abadad-69e8-4c92-addc-058f06164db5.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent game sprite ATLAS for Ironclad TD. The attached image is a STYLE REFERENCE ONLY, not an edit target. Generate NEW monsters matching its simple polished chunky 2D painted/cel-shaded casual tower-defense art. Readable shapes, modest detail, warm dark outlines, 2-3 tones per surface, same soft upper-left light, expressive eyes. NOT advanced, ornate, photorealistic, or excessively detailed. Elevated three-quarter full-body view, generally facing lower right. Each character completely visible and centered in its own equal grid cell with at least 15% empty cell margin on every side. Genuine transparent alpha background. No ground, no platforms, no backdrop, no detached props, no text/labels/numbers, no grid lines. EXACTLY one different monster per designated cell, no extras, no duplicates. Keep all limbs and features inside its cell; these will be cut into individual sprites. Landscape sheet: EXACTLY EIGHT sprites in 4 columns and 2 rows, equal cells. Row-major order:\nRow1: Rust Crawler (rusty orange-brown plated beetle on six short legs, amber eyes); Coal Golem (chunky charcoal stone golem, warm orange seams); Iron Mite (small steel-grey metallic tick-like beetle, pale edge highlights); Stonejaw (bulky sandy rock crocodile creature with oversized stone lower jaw).\nRow2: Lava Guard (short heavily built dark red volcanic armored guard, orange gaps in plates); Shell Bug (compact olive-brown insect with broad cream-rimmed domed shell); Grave Worm (curled beige armored segmented worm with small bone plates, pale green eyes); Bone Knight (short ivory skeletal knight in simple bone armor, small shield attached at arm, red eyes)."
+    },
+    {
+      "key": "Runners",
+      "cols": 3,
+      "rows": 3,
+      "names": [
+        "Briar Imp",
+        "Cinder Hound",
+        "Blood Skitter",
+        "Dread Stalker",
+        "Bog Runner",
+        "Hell Pup",
+        "Dust Rat",
+        "Soot Skipper",
+        "Acid Nibbler"
+      ],
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-1a3dd800-290d-4d31-bc3e-0f9a77cda21d.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent game sprite ATLAS for Ironclad TD. The attached image is a STYLE REFERENCE ONLY, not an edit target. Generate NEW monsters matching its simple polished chunky 2D painted/cel-shaded casual tower-defense art. Readable shapes, modest detail, warm dark outlines, 2-3 tones per surface, same soft upper-left light, expressive eyes. NOT advanced, ornate, photorealistic, or excessively detailed. Elevated three-quarter full-body view, generally facing lower right. Each character completely visible and centered in its own equal grid cell with at least 15% empty cell margin on every side. Genuine transparent alpha background. No ground, no platforms, no backdrop, no detached props, no text/labels/numbers, no grid lines. EXACTLY one different monster per designated cell, no extras, no duplicates. Keep all limbs and features inside its cell; these will be cut into individual sprites. SQUARE sheet: EXACTLY NINE sprites in 3 columns and 3 rows, equal cells.\nRow1: Briar Imp (green sprightly goblin with leaf ears and small thorn hair); Cinder Hound (small rust-red lean dog beast with orange ember ears); Blood Skitter (burgundy fast four-legged insectoid with pink back ridges).\nRow2: Dread Stalker (brown hunched long-legged feline monster with golden brow, pointed ears); Bog Runner (olive-green long-legged frog imp with pale yellow throat); Hell Pup (small bright red puppy demon, tiny cream horns, yellow eyes).\nRow3: Dust Rat (sandy brown large-eared rat with long curled tail); Soot Skipper (dark grey lanky hopping imp with rust-orange feet and ears); Acid Nibbler (lime and forest-green small rodent monster, rounded belly, two tiny fangs, simple green acid cheek spots)."
+    },
+    {
+      "key": "Winged",
+      "cols": 5,
+      "rows": 2,
+      "names": [
+        "Ash Sprite",
+        "Shardling",
+        "Plague Bat",
+        "Phase Imp",
+        "Storm Wisp",
+        "Moon Bat",
+        "Gloom Bat",
+        "Ember Moth",
+        "Rune Wisp",
+        "Feral Wisp"
+      ],
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-9aadab87-21ca-43a0-a25b-521078bbcdb6.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent game sprite ATLAS for Ironclad TD. The attached image is a STYLE REFERENCE ONLY, not an edit target. Generate NEW monsters matching its simple polished chunky 2D painted/cel-shaded casual tower-defense art. Readable shapes, modest detail, warm dark outlines, 2-3 tones per surface, same soft upper-left light, expressive eyes. NOT advanced, ornate, photorealistic, or excessively detailed. Elevated three-quarter full-body view, generally facing lower right. Each character completely visible and centered in its own equal grid cell with at least 15% empty cell margin on every side. Genuine transparent alpha background. No ground, no platforms, no backdrop, no detached props, no text/labels/numbers, no grid lines. EXACTLY one different monster per designated cell, no extras, no duplicates. Keep all limbs and features inside its cell; these will be cut into individual sprites. Landscape sheet: EXACTLY TEN sprites in 5 columns and 2 rows, equal cells. IMPORTANT wings must be wholly inside each cell. Vary wing and body shapes.\nRow1: Ash Sprite (grey flying imp with smoky pointed wings, orange eyes); Shardling (pale cyan tiny crystal-winged creature with dark eyes); Plague Bat (plum-purple plump bat, mint-green inner ears); Phase Imp (lavender winged imp, teal eyes, curling tail); Storm Wisp (teal small airborne spirit with two lightning-shaped winglets and white eyes).\nRow2: Moon Bat (indigo bat with broad pale blue crescent-shaped wings); Gloom Bat (deep slate bat, narrow violet-edged wings, long ears); Ember Moth (orange and rust moth creature, cream-yellow patterned wings); Rune Wisp (purple floating spirit with two broad ribbon-shaped winglets and one simple cyan diamond marking); Feral Wisp (cyan-blue wild airborne spirit, swept-back sharp wings, spiky head tuft)."
+    },
+    {
+      "key": "Spiked",
+      "cols": 5,
+      "rows": 2,
+      "names": [
+        "Needle Fiend",
+        "Frost Wretch",
+        "Gear Imp",
+        "Void Leech",
+        "Thornback",
+        "Night Shard",
+        "Final Horror",
+        "Glass Imp",
+        "Crystal Creep",
+        "Hook Fiend"
+      ],
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-fea3d059-2e62-44e1-b2dd-125f236cfbd5.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent PNG sprite atlas for Ironclad TD. Attached image is STYLE REFERENCE ONLY. Generate new monsters in matching simple chunky 2D hand-painted/cel-shaded casual tower-defense style. Bold readable silhouettes, expressive eyes, modest detail, 2-3 shades per material, soft top-left light. No photorealism, intricate filigree or heavy special effects. Full body elevated three-quarter view facing lower right. Each creature must fit wholly in its own equal grid cell, with 15% empty padding around all limbs. TRUE TRANSPARENT ALPHA BACKGROUND. Do not draw any checkerboard, white background, text, numbers, grid, frames, platforms, ground or detached props. Exactly one new character per designated cell.Landscape image, 5 columns x 2 rows, EXACTLY TEN creatures in row-major order:\nRow1: Needle Fiend (forest-green lean hedgehog goblin with long mint spines); Frost Wretch (blue hunched icy creature with white ice spikes, small arms); Gear Imp (bronze goblin with small cog-shaped shoulder plates and pointed gear teeth, cyan eyes); Void Leech (plum-purple curved worm with lavender pointed back fins and small glowing eyes); Thornback (stocky moss-green quadruped with broad leafy thorn plates).\nRow2: Night Shard (dark slate and indigo faceted crystal imp, clearly visible light violet edges); Final Horror (small charcoal horned beast with three ivory back spikes, red eyes; regular enemy not a huge boss); Glass Imp (pale blue-grey glass creature with sharp translucent-looking but opaque limbs, white highlights); Crystal Creep (turquoise squat crystal crab beast with blue crystals on back); Hook Fiend (maroon hunched imp with two hooked foreclaws, pink shoulder ridge, amber eyes)."
+    },
+    {
+      "key": "BossesA",
+      "cols": 4,
+      "rows": 2,
+      "names": [
+        "Grimjaw",
+        "Nightclaw",
+        "Bonehide",
+        "Ashmaw",
+        "Frostfang",
+        "Rotspike",
+        "Ironhorn",
+        "Bloodwing"
+      ],
+      "boss": true,
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-2f409dc7-9680-48d1-8196-0cfc8f4f2f58.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent PNG sprite atlas for Ironclad TD. Attached image is STYLE REFERENCE ONLY. Generate new monsters in matching simple chunky 2D hand-painted/cel-shaded casual tower-defense style. Bold readable silhouettes, expressive eyes, modest detail, 2-3 shades per material, soft top-left light. No photorealism, intricate filigree or heavy special effects. Full body elevated three-quarter view facing lower right. Each creature must fit wholly in its own equal grid cell, with 15% empty padding around all limbs. TRUE TRANSPARENT ALPHA BACKGROUND. Do not draw any checkerboard, white background, text, numbers, grid, frames, platforms, ground or detached props. Exactly one new character per designated cell.Landscape image 4 columns x 2 rows, EXACTLY EIGHT bosses. Bosses are only moderately stronger-looking than the reference ordinary mobs: bigger horns/fists, one defining feature each, no overcomplicated designs, no crowns of tiny objects. Row-major:\nRow1: Grimjaw (scarlet squat ogre beast with oversized ivory lower tusks); Nightclaw (violet panther-like upright monster with long simple claws); Bonehide (cream bone-plated bulky rhino creature); Ashmaw (burnt-orange charcoal monster with broad ember mouth).\nRow2: Frostfang (ice-blue white-maned wolf beast with two long ice fangs); Rotspike (swamp-green bulky troll with short thorn-covered shoulders); Ironhorn (steel-grey armored bull monster with two large polished horns); Bloodwing (deep crimson muscular bat demon with broad red wings).\nKeep each character COMPLETELY within its cell, especially wings."
+    },
+    {
+      "key": "BossesB",
+      "cols": 4,
+      "rows": 2,
+      "names": [
+        "Voidbite",
+        "Dreadeye",
+        "Stoneback",
+        "Venomlord",
+        "Stormskull",
+        "Hellgrin",
+        "The Last Horror"
+      ],
+      "boss": true,
+      "source": "/Users/will/.codex/generated_images/019f97e1-0621-7033-813e-7a00cffe8944/exec-3cd075cd-dd67-46dd-87cc-1e39baef2f1c.png",
+      "prompt": "Use case: stylized-concept. Asset type: transparent PNG sprite atlas for Ironclad TD. Attached image is STYLE REFERENCE ONLY. Generate new monsters in matching simple chunky 2D hand-painted/cel-shaded casual tower-defense style. Bold readable silhouettes, expressive eyes, modest detail, 2-3 shades per material, soft top-left light. No photorealism, intricate filigree or heavy special effects. Full body elevated three-quarter view facing lower right. Each creature must fit wholly in its own equal grid cell, with 15% empty padding around all limbs. TRUE TRANSPARENT ALPHA BACKGROUND. Do not draw any checkerboard, white background, text, numbers, grid, frames, platforms, ground or detached props. Exactly one new character per designated cell.Landscape image 4 columns x 2 rows, EXACTLY SEVEN bosses and one EMPTY transparent cell in the bottom right. Bosses are only moderately stronger-looking than regular mobs: one defining feature each, no elaborate detail. Row-major:\nRow1: Voidbite (deep violet round maw-beast with two big lavender fangs); Dreadeye (ochre/yellow squat cyclops with one enormous amber eye, short horns); Stoneback (brown rock-armored tortoise beast with tall simple slabs on back); Venomlord (bright green serpent-bodied lizard beast with two pale fangs and simple hood).\nRow2: Stormskull (cyan-blue floating skull beast with two lightning-shaped horns, compact body of blue mist, minimal glow); Hellgrin (red squat devil with cream horns and broad ivory toothy grin); The Last Horror (ivory and dark grey bulky final monster with two swept horns and red eyes, distinctive broad chest and big clawed arms, only modest detail); cell 8 COMPLETELY EMPTY TRANSPARENT.\nTrue alpha. Never draw a checkerboard."
+    }
+  ]
+}

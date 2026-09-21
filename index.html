@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Ironclad TD</title>
-    <link rel="stylesheet" href="./styles.css?v=33" />
+    <link rel="stylesheet" href="./styles.css?v=43" />
   </head>
   <body>
     <main id="app">
@@ -55,8 +55,18 @@
             <span class="blast blast-a"><i></i></span>
             <span class="blast blast-b"><i></i></span>
             <span class="blast blast-c"><i></i></span>
-            <span class="spark-field spark-a"></span>
-            <span class="spark-field spark-b"></span>
+            <span class="spark-field">
+              <i style="--x:6%;--duration:16.3s;--delay:-4s;--drift:3vw;--size:3.5px"></i>
+              <i style="--x:18%;--duration:19.7s;--delay:-12s;--drift:-2vw;--size:3px;--glow:.85"></i>
+              <i style="--x:29%;--duration:14.9s;--delay:-7s;--drift:4vw;--size:4px;--color:#ffc078"></i>
+              <i style="--x:40%;--duration:22.1s;--delay:-18s;--drift:2vw;--size:3.2px"></i>
+              <i style="--x:51%;--duration:17.9s;--delay:-2s;--drift:-3vw;--size:3.4px;--glow:.85"></i>
+              <i style="--x:63%;--duration:20.3s;--delay:-14s;--drift:3vw;--size:3px;--color:#ffb567"></i>
+              <i style="--x:75%;--duration:15.7s;--delay:-9s;--drift:-2vw;--size:3.8px"></i>
+              <i style="--x:86%;--duration:23.3s;--delay:-5s;--drift:2vw;--size:3.2px;--glow:.9"></i>
+              <i style="--x:95%;--duration:18.7s;--delay:-15s;--drift:-4vw;--size:3.5px;--color:#ffb265"></i>
+              <i style="--x:70%;--duration:21.1s;--delay:-7.2s;--drift:2vw;--size:3.6px;--color:#ffd18b"></i>
+            </span>
             <span class="debris debris-a"></span>
             <span class="debris debris-b"></span>
             <span class="debris debris-c"></span>
@@ -309,15 +319,6 @@
           <button id="leaveMatch" class="secondary danger-button">Leave</button>
         </header>
 
-        <div id="bossBar" class="boss-bar">
-          <div class="boss-bar-head">
-            <span id="bossName">Boss</span>
-            <span id="bossHpText">0 / 0</span>
-          </div>
-          <div class="boss-bar-track"><div id="bossHpFill"></div></div>
-        </div>
-        <div id="waveBonus" class="wave-bonus"></div>
-
         <section class="battle-wrap">
           <aside class="panel game-tools">
             <h3>Towers</h3>
@@ -326,7 +327,20 @@
             <button id="sellTower" class="secondary" disabled>Sell Selected</button>
             <button id="upgradeTower" class="secondary" disabled>Upgrade Selected</button>
           </aside>
-          <canvas id="gameCanvas" width="1000" height="650"></canvas>
+          <div class="battle-viewport">
+            <div class="battle-map">
+              <canvas id="gameCanvas" width="1000" height="650"></canvas>
+              <div id="bossBar" class="boss-bar">
+                <div class="boss-bar-head">
+                  <span class="boss-emblem" aria-hidden="true">☠</span>
+                  <div class="boss-identity"><small>BOSS ENCOUNTER</small><span id="bossName">Boss</span></div>
+                  <div class="boss-vitals"><small>HEALTH</small><span id="bossHpText"><b id="bossHpCurrent">0</b><span> / <span id="bossHpMax">0</span></span></span></div>
+                </div>
+                <div class="boss-bar-track"><div id="bossHpTrail"></div><div id="bossHpFill"></div></div>
+              </div>
+              <div id="waveBonus" class="wave-bonus"></div>
+            </div>
+          </div>
         </section>
       </section>
 
@@ -378,7 +392,7 @@
       (() => {
         const loadGame = () => {
           const script = document.createElement("script");
-          script.src = "./game.js?v=29";
+          script.src = "./game.js?v=39";
           document.body.appendChild(script);
         };
         if (["localhost", "127.0.0.1"].includes(location.hostname)) {
