@@ -1,0 +1,13 @@
+Use case: stylized-concept. Asset type: single transparent PNG soldier sprite for a simple tower-defense game, one of five coherent upgrade tiers. Full body centered, feet near bottom, three-quarter view facing right, slightly top-down isometric camera. Cute sturdy proportions, large helmet and short limbs, clean hand-painted cartoon game art with bold clear silhouette, olive green uniform, dark boots, simple soft highlights, modest dark outline. Readable at just 40 pixels tall. Genuine transparent background, no ground, no scenery, no frame, no text, no numbers, no health bar. Keep uncomplicated, no intricate equipment, no particles, no photorealism. 
+
+1. Tier 1 basic recruit: plain olive helmet, simple olive tunic and trousers, brown belt, two boots, empty hands held ready. No gun or armor.
+
+2. Tier 2 trained guard: olive helmet, a simple tan padded vest over olive uniform, small muted steel shoulder pads, empty hands in ready stance. No gun.
+
+3. Tier 3 rifle soldier: olive helmet, simple charcoal chest vest, olive uniform, holding one small plain gray rifle across torso pointing right. No elaborate attachments.
+
+4. Tier 4 veteran rifle soldier: olive helmet with one light stripe, simple charcoal chest armor and small shoulder plates, olive uniform, one compact gray rifle across torso pointing right. Clearly upgraded but very simple.
+
+5. Tier 5 final elite soldier: sturdy dark olive helmet with small gold central stripe, simple steel-gray chestplate and shoulder armor with restrained gold trim, olive uniform and dark boots, one compact rifle across torso pointing right. Strong and complete silhouette, not bulky or futuristic, no glow.
+
+Tier 2 refinement: removed background glow, made proportions compact to match tier 3. Generated with the built-in image-generation tool.
