@@ -9,6 +9,8 @@
   --panel-3: #10161a;
   --line: #3d4b56;
   --muted: #a7b4bf;
+  --info-text: #c2d1dc;
+  --info-accent: #dbbc76;
   --text: #eef3f7;
   --gold: #f3c64f;
   --green: #68db76;
@@ -86,7 +88,20 @@ h1, h2, h3, p { margin-top: 0; }
   text-transform: uppercase;
   text-shadow: 0 7px #66460a;
 }
-.auth-actions { display: flex; justify-content: center; gap: 12px; }
+.auth-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 400px);
+  margin-inline: auto;
+  gap: 12px;
+}
+.auth-actions > button, .guest-play {
+  min-height: 52px;
+  padding: 12px 16px;
+  font-size: 17px;
+  line-height: 1.2;
+}
+.guest-play { display: block; width: min(100%, 400px); margin: 18px auto 0; }
 .auth-card > p { margin: 25px 0 0; color: var(--muted); }
 
 /* Home */
@@ -235,6 +250,47 @@ h1, h2, h3, p { margin-top: 0; }
 .multiplayer-actions, .join-room, .exchange-balances, .exchange-direction { display: flex; gap: 10px; }
 .join-room { flex: 1; }
 .room-info { padding: 13px; border-radius: 9px; color: var(--muted); background: var(--panel-3); }
+.multiplayer-card { width: min(880px, 94vw); max-height: 92vh; overflow-y: auto; }
+.multiplayer-card .room-info { padding: 16px; }
+.room-overview { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 0 2px 14px; border-bottom: 1px solid #344550; }
+.room-code { display: flex; align-items: baseline; gap: 10px; }
+.room-code > span { color: #95aab8; font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+.room-code > b { color: #f4d676; font-size: 22px; letter-spacing: .12em; }
+.room-overview-stats { display: flex; flex-wrap: wrap; gap: 8px 18px; color: #a8bbc7; font-size: 13px; }
+.room-overview-stats b { color: #edf4f7; }
+.room-roster { display: grid; gap: 8px; margin-top: 12px; }
+.room-player { display: grid; grid-template-columns: minmax(145px, 1fr) minmax(0, 2.3fr); align-items: center; gap: 14px; padding: 10px 12px; border: 1px solid #31444e; border-radius: 10px; background: #17242b; }
+.room-player-details { min-width: 0; }
+.room-player-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.room-player-heading strong { overflow-wrap: anywhere; color: #f1f7fa; font-size: 16px; }
+.room-player-tag { padding: 2px 6px; border: 1px solid #3d6571; border-radius: 5px; color: #a6d6df; font-size: 10px; line-height: 1.2; text-transform: uppercase; }
+.room-player-tag.host { border-color: #7b6933; color: #f2ce6d; }
+.room-player-stage { margin-top: 5px; color: #9aadb8; font-size: 12px; }
+.room-player-offline { margin-left: 4px; color: #e9b66e; }
+.room-loadout { display: flex; justify-content: center; gap: 7px; min-width: 0; padding: 7px 10px; border: 1px solid #344b54; border-radius: 9px; background: #0f1a20; }
+.room-tower { display: grid; justify-items: center; gap: 3px; flex: 1 1 0; min-width: 0; max-width: 66px; }
+.room-tower-portrait { display: grid; place-items: center; width: 48px; height: 48px; overflow: hidden; border: 1px solid #4d6974; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #344b52, #17272e 75%); }
+.room-tower-portrait img { width: 100%; height: 100%; object-fit: contain; }
+.room-tower-name { max-width: 100%; overflow: hidden; color: #d7e5eb; font-size: 10px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.room-empty-loadout { align-self: center; color: #9aadb8; font-size: 12px; }
+@media (max-width: 600px) {
+  .room-player { grid-template-columns: 1fr; gap: 8px; }
+  .room-overview { align-items: flex-start; flex-direction: column; gap: 5px; }
+}
+body.mobile-layout .multiplayer-card { width: min(92%, 880px); max-height: 91%; padding: 10px; }
+body.mobile-layout .multiplayer-body { gap: 7px; }
+body.mobile-layout .multiplayer-card .room-info { padding: 8px; }
+body.mobile-layout .room-overview { padding-bottom: 6px; }
+body.mobile-layout .room-code > b { font-size: 16px; }
+body.mobile-layout .room-code > span, body.mobile-layout .room-overview-stats { font-size: 9px; }
+body.mobile-layout .room-roster { gap: 4px; margin-top: 6px; }
+body.mobile-layout .room-player { grid-template-columns: minmax(90px, 1fr) minmax(0, 2.5fr); gap: 6px; padding: 5px 7px; }
+body.mobile-layout .room-player-heading strong { font-size: 11px; }
+body.mobile-layout .room-player-stage, body.mobile-layout .room-player-tag { font-size: 8px; }
+body.mobile-layout .room-player-stage { margin-top: 2px; }
+body.mobile-layout .room-loadout { gap: 3px; padding: 3px 5px; }
+body.mobile-layout .room-tower-portrait { width: 32px; height: 32px; }
+body.mobile-layout .room-tower-name { font-size: 8px; }
 .exchange-card { width: min(640px, 90vw); }
 .exchange-body { display: grid; gap: 17px; }
 .exchange-balances > span { flex: 1; padding: 13px; border-radius: 10px; background: var(--panel-3); }
@@ -973,7 +1029,7 @@ button > *, .button-label { pointer-events: none; }
   background: none;
 }
 
-/* Atmospheric motion only: the background image stays fixed and cannon beams get no added particles. */
+/* Atmospheric motion keeps the background artwork fixed. */
 .home-battle-bg > .battle-sky,
 .home-battle-bg > .foreground-dust {
   display: block;
@@ -983,6 +1039,17 @@ button > *, .button-label { pointer-events: none; }
   pointer-events: none;
 }
 .home-battle-bg > .battle-sky { z-index: 1; }
+.auth-bg > .cannon-sizzle, .home-battle-bg > .cannon-sizzle {
+  display: block;
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.auth-bg, .home-battle-bg { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .auth-bg > .cannon-sizzle, .home-battle-bg > .cannon-sizzle { display: none; }
+}
 .battle-sky > * { display: none; }
 .battle-sky > .spark-field,
 .battle-sky > .smoke-cloud,
@@ -1342,3 +1409,65 @@ body.mobile-layout .boss-bar.show + .wave-bonus { bottom: 88px; }
   .wave-reward-shine { display: none; }
   #bossHpFill, #bossHpTrail { transition: none; }
 }
+
+/* Shared briefing typography for descriptions, tips, and supporting copy. */
+:is(#authIntro, .tower-description, .selection-note, .selected-info:not(.has-selection),
+    .mode-option > span, .panel-head span, .room-info, .level-card > p,
+    .mob-card > small, .daily-reward > small, .result-card > p, #codeStatus,
+    .auth-status, .gamebar > div > p) {
+  font-family: "Trebuchet MS", "Avenir Next", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: .018em;
+  line-height: 1.45;
+  text-shadow: 0 1px 2px #0008;
+  text-wrap: pretty;
+}
+:is(#authIntro, .tower-description, .selection-note, .selected-info:not(.has-selection),
+    .mode-option > span, .panel-head span, .room-info, .level-card > p,
+    .mob-card > small, .daily-reward > small, .result-card > p) {
+  color: var(--info-text);
+}
+:is(#authIntro, .tower-description, .selection-note) {
+  border-left: 2px solid var(--tc, var(--info-accent));
+  padding: 10px 12px;
+  border-radius: 2px 8px 8px 2px;
+  background: linear-gradient(110deg, #bcd9ed0b, #0b121822);
+  box-shadow: inset 0 1px #dceaff08;
+}
+#authIntro { text-align: left; font-size: 15px; line-height: 1.55; }
+.tower-description { font-size: 13px; }
+.selected-info:not(.has-selection) { border-left-color: var(--info-accent); }
+.mode-option > span { font-size: .88em; }
+.mob-card > small { letter-spacing: .025em; }
+.code-note-row > span { font-family: "Trebuchet MS", ui-sans-serif, sans-serif; font-weight: 600; line-height: 1.4; }
+body.mobile-layout :is(.tower-description, .selection-note) {
+  padding: 4px 6px;
+  line-height: 1.35;
+  letter-spacing: .01em;
+}
+body.mobile-layout .tower-description { font-size: clamp(8px, .85vw, 11px); }
+body.mobile-layout #authIntro { font-size: 12px; padding: 7px 9px; }
+.mob-card > .index-reward { color: #e9cd89; font-size: 12px; line-height: 1.4; }
+.category-reward { margin: 0 0 14px; padding: 9px 12px; border-left: 2px solid #e9cd89; border-radius: 3px; background: #e9cd890b; color: #e9cd89; font-size: 13px; line-height: 1.4; }
+.category-reward.claimed { color: #9ae4b0; border-color: #9ae4b0; }
+.index-reward { display: grid; gap: 8px; width: 100%; margin-top: auto; color: #e9cd89; font-size: 12px; }
+.index-collect { min-height: 36px; padding: 7px 10px; font-size: 12px; line-height: 1.3; }
+.category-reward { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+body.mobile-layout .index-reward { gap: 5px; font-size: 9px; }
+body.mobile-layout .index-collect { min-height: 28px; padding: 5px 7px; font-size: 9px; }
+body.mobile-layout .mob-card > .index-reward { font-size: 8px; }
+body.mobile-layout .category-reward { font-size: 9px; padding: 5px 7px; margin-bottom: 7px; }
+#levelModal.multiplayer-map-picker .level-header {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
+  gap: 12px;
+}
+
+#levelModal.multiplayer-map-picker .level-header h2 {
+  margin: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+#levelModal.multiplayer-map-picker .level-header button:first-child { justify-self: start; }
+#levelModal.multiplayer-map-picker .level-header button:last-child { justify-self: end; }
