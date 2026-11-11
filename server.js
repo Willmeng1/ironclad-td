@@ -12,8 +12,26 @@ try {
   accounts = await createAccountStore();
   console.log(`Account storage: ${accounts.mode}`);
   if (!process.env.DATABASE_URL) console.warn("DATABASE_URL is not set. Local account files are not durable on Render.");
-} catch {
+} catch (error) {
   console.error("Account database could not be initialized. Check DATABASE_URL and database access.");
+  // Only print recognized error codes: database errors can contain credentials.
+  const hints = {
+    ERR_INVALID_URL: "DATABASE_URL is not a valid connection URL.",
+    "28P01": "Database authentication failed. Check the database password and session-pooler username.",
+    "28000": "Database authentication was rejected. Check the session-pooler connection details.",
+    "3D000": "The database name in DATABASE_URL was not found.",
+    "42501": "The database user lacks permission to create the account tables.",
+    ENOTFOUND: "Database hostname could not be found. Check the session-pooler address.",
+    EAI_AGAIN: "Database hostname lookup failed temporarily.",
+    ECONNREFUSED: "The database refused the connection. Check the pooler host and port.",
+    ECONNRESET: "The database connection was interrupted.",
+    ETIMEDOUT: "The database connection timed out.",
+    SELF_SIGNED_CERT_IN_CHAIN: "The database TLS certificate chain could not be verified.",
+    UNABLE_TO_VERIFY_LEAF_SIGNATURE: "The database TLS certificate could not be verified.",
+    ERR_TLS_CERT_ALTNAME_INVALID: "The database TLS certificate does not match the host.",
+  };
+  const code = Object.hasOwn(hints, error?.code) ? error.code : "UNKNOWN";
+  console.error(`Database error code: ${code}. ${hints[code] || "Check the database settings and connection."}`);
   process.exit(1);
 }
 const sessions = new Map();
