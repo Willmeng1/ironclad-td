@@ -2,12 +2,20 @@ import express from "express";
 import http from "node:http";
 import crypto from "node:crypto";
 import { Server } from "socket.io";
-import { loadAccounts, persistAccounts, hashPassword, verifyPassword } from "./account-store.js";
+import { createAccountStore, hashPassword, verifyPassword } from "./account-store.js";
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const users = loadAccounts();
+let accounts;
+try {
+  accounts = await createAccountStore();
+  console.log(`Account storage: ${accounts.mode}`);
+  if (!process.env.DATABASE_URL) console.warn("DATABASE_URL is not set. Local account files are not durable on Render.");
+} catch {
+  console.error("Account database could not be initialized. Check DATABASE_URL and database access.");
+  process.exit(1);
+}
 const sessions = new Map();
 const rooms = new Map();
 app.use(express.json({ limit: "1mb" }));
@@ -17,30 +25,40 @@ const freshSave = (username) => ({ username, level: 1, xp: 0, gems: 35, metaCoin
 const tokenFor = (username) => { const token = crypto.randomBytes(24).toString("hex"); sessions.set(token, username); return token; };
 const authUser = (req) => sessions.get((req.headers.authorization || "").replace(/^Bearer\s+/i, ""));
 
-app.post("/api/auth/signup", (req, res) => {
+app.post("/api/auth/signup", async (req, res) => {
   const username = String(req.body?.username || "").trim(); const password = String(req.body?.password || "");
   if (username.length < 3 || password.length < 4) return res.status(400).json({ error: "Username or password is too short." });
-  if (users.has(username.toLowerCase())) return res.status(409).json({ error: "That username is already taken." });
   const save = { ...freshSave(username), ...(req.body?.saveData || {}), username };
   const key = username.toLowerCase();
-  users.set(key, { credential: hashPassword(password), save });
-  try { persistAccounts(users); }
-  catch (error) { users.delete(key); console.error("Account save failed:", error); return res.status(500).json({ error: "Could not save your account. Please try again." }); }
+  try {
+    if (!await accounts.create(key, { credential: hashPassword(password), save })) return res.status(409).json({ error: "That username is already taken." });
+  } catch { console.error("Account creation failed."); return res.status(503).json({ error: "Could not save your account. Please try again." }); }
   res.json({ username, token: tokenFor(username.toLowerCase()), saveData: save });
 });
-app.post("/api/auth/login", (req, res) => {
-  const key = String(req.body?.username || "").trim().toLowerCase(); const user = users.get(key);
+app.post("/api/auth/login", async (req, res) => {
+  const key = String(req.body?.username || "").trim().toLowerCase();
+  let user;
+  try { user = await accounts.get(key); }
+  catch { console.error("Account lookup failed."); return res.status(503).json({ error: "Account storage is temporarily unavailable." }); }
   if (!user || !verifyPassword(String(req.body?.password || ""), user.credential)) return res.status(401).json({ error: "Incorrect username or password." });
   res.json({ username: user.save.username, token: tokenFor(key), saveData: user.save });
 });
-app.get("/api/auth/me", (req, res) => { const key = authUser(req); const user = users.get(key); if (!user) return res.status(401).json({ error: "Not signed in." }); res.json({ username: user.save.username, saveData: user.save }); });
-app.post("/api/auth/save", (req, res) => {
-  const key = authUser(req); const user = users.get(key);
+app.get("/api/auth/me", async (req, res) => {
+  const key = authUser(req);
+  if (!key) return res.status(401).json({ error: "Not signed in." });
+  try {
+    const user = await accounts.get(key);
+    if (!user) return res.status(401).json({ error: "Not signed in." });
+    res.json({ username: user.save.username, saveData: user.save });
+  } catch { console.error("Account lookup failed."); res.status(503).json({ error: "Account storage is temporarily unavailable." }); }
+});
+app.post("/api/auth/save", async (req, res) => {
+  const key = authUser(req);
+  if (!key) return res.status(401).json({ error: "Not signed in." });
+  let user;
+  try { user = await accounts.save(key, req.body?.saveData || req.body?.save || req.body || {}); }
+  catch { console.error("Progress save failed."); return res.status(503).json({ error: "Could not save your progress. Please try again." }); }
   if (!user) return res.status(401).json({ error: "Not signed in." });
-  const previous = user.save;
-  user.save = { ...previous, ...(req.body?.saveData || req.body?.save || req.body || {}), username: previous.username };
-  try { persistAccounts(users); }
-  catch (error) { user.save = previous; console.error("Progress save failed:", error); return res.status(500).json({ error: "Could not save your progress. Please try again." }); }
   res.json({ username: user.save.username, saveData: user.save });
 });
 app.post("/api/auth/heartbeat", (req, res) => res.json({ ok: Boolean(authUser(req)) }));
