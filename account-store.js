@@ -63,7 +63,16 @@ export async function createAccountStore(databaseUrl = process.env.DATABASE_URL,
     };
   }
 
-  const pool = createPool({ connectionString: databaseUrl, ssl: { rejectUnauthorized: true }, max: 5 });
+  const connection = new URL(databaseUrl);
+  if (!["postgres:", "postgresql:"].includes(connection.protocol)) {
+    throw Object.assign(new Error("Invalid database URL"), { code: "ERR_INVALID_URL" });
+  }
+  // pg can replace the SSL object when sslmode is present in the URL. Keep
+  // verification enabled and supply the project's CA explicitly instead.
+  for (const option of ["sslmode", "sslcert", "sslkey", "sslrootcert"]) connection.searchParams.delete(option);
+  const ca = process.env.SUPABASE_DB_CA_CERT;
+  const ssl = { rejectUnauthorized: true, ...(ca ? { ca: ca.replace(/\\n/g, "\n").trim() } : {}) };
+  const pool = createPool({ connectionString: connection.toString(), ssl, max: 5 });
   pool.on("error", () => console.error("An idle database connection was lost."));
   try {
     await pool.query("CREATE SCHEMA IF NOT EXISTS ironclad_private");
