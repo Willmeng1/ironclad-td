@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Ironclad TD</title>
-    <link rel="stylesheet" href="./styles.css?v=51" />
+    <link rel="stylesheet" href="./styles.css?v=75" />
   </head>
   <body>
     <main id="app">
@@ -277,6 +277,7 @@
           <div class="mob-index-card panel">
             <div class="panel-head"><div><h2>Mob Index</h2><span id="mobIndexCount">0 / 0 discovered</span></div><button id="closeMobIndex" class="close-button">Close</button></div>
             <div id="mobIndexList" class="mob-index-list"></div>
+            <div class="mob-index-actions"><button id="claimAllMobRewards" class="primary" type="button">Claim All (0)</button></div>
           </div>
         </div>
 
@@ -362,17 +363,25 @@
         <div class="code-note-card">
           <button id="closeCodeNote" class="close-button code-note-close" type="button">Close</button>
           <div class="code-note-paper">
+            <header class="code-note-head">
+              <span class="code-note-kicker">Ironclad intelligence</span>
+              <h2>Redeemable Codes</h2>
+              <p>Enter these codes in Settings to collect the listed rewards.</p>
+            </header>
             <div class="code-note-row tilt-left">
-              <b>bestgame</b>
-              <span>300 XP and 100 gems</span>
+              <i class="code-note-icon" aria-hidden="true">★</i>
+              <div class="code-note-copy"><b>bestgame</b><span>300 XP and 100 gems</span></div>
+              <small class="code-note-stamp">Active</small>
             </div>
             <div class="code-note-row tilt-right">
-              <b>bumbum</b>
-              <span>1000 coins</span>
+              <i class="code-note-icon" aria-hidden="true">●</i>
+              <div class="code-note-copy"><b>bumbum</b><span>1000 coins</span></div>
+              <small class="code-note-stamp">Active</small>
             </div>
             <div class="code-note-row tilt-left soft">
-              <b>bum</b>
-              <span>Unlocks the next tower after your best tower</span>
+              <i class="code-note-icon" aria-hidden="true">▲</i>
+              <div class="code-note-copy"><b>bum</b><span>Unlocks the next tower after your best tower</span></div>
+              <small class="code-note-stamp">Active</small>
             </div>
           </div>
         </div>
@@ -394,11 +403,12 @@
       <div id="toast" class="toast"></div>
     </main>
     <script src="./stage-maps-v3.js?v=1"></script>
+    <script src="./simulation-rules.js?v=9"></script>
     <script>
       (() => {
         const loadGame = () => {
           const script = document.createElement("script");
-          script.src = "./game.js?v=72";
+          script.src = "./game.js?v=99";
           document.body.appendChild(script);
         };
         if (location.protocol === "http:" || location.protocol === "https:") {

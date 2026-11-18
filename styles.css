@@ -17,6 +17,167 @@
   --red: #ef625c;
   --battle-sidebar-width: clamp(270px, 16vw, 300px);
 }
+
+/* Redeem-code field memo. */
+#codeNoteModal { backdrop-filter: blur(3px); }
+#codeNoteModal .code-note-card {
+  position: relative;
+  width: min(780px, 86vw);
+  max-width: min(780px, 86vw);
+  max-height: 84vh;
+  padding: 0;
+  overflow: visible;
+  filter: drop-shadow(0 24px 40px #000b);
+}
+#codeNoteModal .code-note-paper {
+  position: relative;
+  display: grid;
+  gap: 13px;
+  width: 100%;
+  max-height: 84vh;
+  padding: 30px;
+  overflow: auto;
+  border: 1px solid #ecd28e;
+  border-radius: 18px;
+  color: #2d210e;
+  background:
+    radial-gradient(circle at 13% 10%, #fff1bd8c 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 78%, #8f6a2630 0 2px, transparent 3px),
+    repeating-linear-gradient(0deg, #80621c0a 0 1px, transparent 1px 8px),
+    linear-gradient(145deg, #f0dda7, #cba85e);
+  box-shadow: inset 0 0 0 4px #6e501624, inset 0 0 45px #7351142b;
+}
+#codeNoteModal .code-note-paper::before {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border: 1px dashed #76551873;
+  border-radius: 11px;
+  pointer-events: none;
+}
+#codeNoteModal .code-note-head {
+  position: relative;
+  z-index: 1;
+  padding: 2px 8px 16px;
+  border-bottom: 2px solid #76551857;
+  text-align: left;
+}
+#codeNoteModal .code-note-kicker {
+  color: #775414;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+#codeNoteModal .code-note-head h2 {
+  margin: 5px 0 4px;
+  color: #241805;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+}
+#codeNoteModal .code-note-head p {
+  margin: 0;
+  color: #59431a;
+  font-family: "Trebuchet MS", ui-sans-serif, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+#codeNoteModal .code-note-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid #6d511d80;
+  border-left: 5px solid #76520d;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #fff2c9c7, #e5c679c7);
+  box-shadow: 0 5px 0 #72500f38, inset 0 1px #fff7d5;
+}
+#codeNoteModal .code-note-row.tilt-left { transform: rotate(-.18deg); }
+#codeNoteModal .code-note-row.tilt-right { transform: rotate(.18deg); }
+#codeNoteModal .code-note-row.soft { border-left-color: #326f78; background: linear-gradient(100deg, #eef0c9d9, #c9dca4cf); }
+#codeNoteModal .code-note-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 2px solid #d4aa4c;
+  border-radius: 50%;
+  color: #f5ce66;
+  background: radial-gradient(circle at 35% 30%, #5d4927, #201707 70%);
+  box-shadow: 0 3px 0 #3d2a08;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 950;
+}
+#codeNoteModal .code-note-copy { display: grid; gap: 4px; min-width: 0; }
+#codeNoteModal .code-note-copy b {
+  width: max-content;
+  max-width: 100%;
+  padding: 4px 9px;
+  border: 1px solid #5b4218;
+  border-radius: 7px;
+  color: #fff1b6;
+  background: #31230e;
+  box-shadow: 0 3px 0 #160f05;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  letter-spacing: .045em;
+  overflow-wrap: anywhere;
+}
+#codeNoteModal .code-note-copy span {
+  color: #4c3611;
+  font-family: "Trebuchet MS", ui-sans-serif, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+#codeNoteModal .code-note-stamp {
+  padding: 5px 7px;
+  border: 2px solid #477043;
+  border-radius: 5px;
+  color: #355e31;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+}
+#codeNoteModal .code-note-close {
+  z-index: 3;
+  top: -14px;
+  right: -14px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border-color: #d6b052;
+  background: linear-gradient(#3b4e5c, #17222a);
+}
+body.mobile-layout #app #codeNoteModal .code-note-card {
+  width: min(75%, 780px);
+  max-width: 75%;
+  max-height: 78%;
+  padding: 0;
+  overflow: visible;
+  border-radius: 18px;
+}
+body.mobile-layout #app #codeNoteModal .code-note-paper { max-height: 78vh; padding: clamp(14px, 3.5vh, 25px); gap: clamp(7px, 1.8vh, 12px); }
+body.mobile-layout #app #codeNoteModal .code-note-paper::before { inset: 8px; }
+body.mobile-layout #app #codeNoteModal .code-note-head { padding: 0 5px clamp(8px, 2vh, 14px); }
+body.mobile-layout #app #codeNoteModal .code-note-kicker { font-size: clamp(7px, 1.7vh, 10px); }
+body.mobile-layout #app #codeNoteModal .code-note-head h2 { margin: 3px 0; font-size: clamp(18px, 5vh, 29px); }
+body.mobile-layout #app #codeNoteModal .code-note-head p { font-size: clamp(8px, 2vh, 12px); }
+body.mobile-layout #app #codeNoteModal .code-note-row { grid-template-columns: clamp(28px, 8vh, 42px) minmax(0, 1fr) auto; gap: clamp(7px, 1.8vw, 12px); padding: clamp(7px, 1.8vh, 12px); }
+body.mobile-layout #app #codeNoteModal .code-note-icon { width: clamp(27px, 7vh, 40px); height: clamp(27px, 7vh, 40px); font-size: clamp(13px, 3.5vh, 19px); }
+body.mobile-layout #app #codeNoteModal .code-note-copy b { padding: 3px 7px; font-size: clamp(12px, 3vh, 17px); }
+body.mobile-layout #app #codeNoteModal .code-note-copy span { font-size: clamp(8px, 2.1vh, 12px); }
+body.mobile-layout #app #codeNoteModal .code-note-stamp { padding: 3px 5px; font-size: clamp(6px, 1.5vh, 8px); }
+body.mobile-layout #app #codeNoteModal .code-note-close { top: -10px; right: -10px; min-height: clamp(30px, 8vh, 42px); }
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; }
 body { overflow: hidden; background: var(--bg); color: var(--text); }
@@ -63,15 +224,18 @@ h1, h2, h3, p { margin-top: 0; }
 #authScreen.active { display: grid; place-items: center; }
 .auth-bg {
   position: absolute;
+  z-index: 0;
+  isolation: isolate;
   inset: 0;
   background: linear-gradient(#0002, #0007), url("./assets/home-background-ironclad.gif") center / cover;
 }
 .auth-card {
   position: relative;
+  z-index: 1;
   width: min(680px, 88vw);
   padding: 52px;
   text-align: center;
-  background: linear-gradient(145deg, #192126f2, #080d10f5);
+  background: linear-gradient(145deg, #192126, #080d10);
 }
 .home-kicker {
   color: #f1ce72;
@@ -854,14 +1018,19 @@ body.mobile-layout .battle-loadout { gap: 4px; }
 body.mobile-layout .battle-card { grid-template-columns: 38px minmax(0, 1fr); min-height: 45px; padding: 3px; border-left-width: 3px; font-size: 8px; }
 body.mobile-layout .battle-card-art { width: 38px; height: 38px; }
 body.mobile-layout .battle-card-info b { font-size: 10px; }
-body.mobile-layout .selected-info { margin-top: 5px; padding: 4px; border-left-width: 3px; font-size: 7px; }
+body.mobile-layout .selected-info { margin-top: 6px; padding: 6px; border-left-width: 3px; font-size: clamp(9px, 2.2vh, 12px); line-height: 1.35; }
 body.mobile-layout .selected-title { font-size: 10px; }
 body.mobile-layout .selection-meta, body.mobile-layout .upgrade-costs { gap: 2px; margin: 3px 0; }
 body.mobile-layout .selection-meta span, body.mobile-layout .upgrade-costs span { padding: 2px; }
 body.mobile-layout .selection-grid, body.mobile-layout .upgrade-grid { gap: 2px 3px; font-size: clamp(6px, 6.3cqi, 7px); }
 body.mobile-layout .selection-grid > *, body.mobile-layout .upgrade-grid > * { padding: 1px 0; }
-body.mobile-layout .selection-note { margin-top: 3px; padding: 3px; line-height: 1.2; }
-body.mobile-layout .game-tools > button { min-height: 24px; margin-top: 3px; padding: 2px; font-size: 7px; }
+body.mobile-layout .selection-note { margin-top: 4px; padding: 6px; font-size: clamp(9px, 2.2vh, 12px); line-height: 1.3; }
+body.mobile-layout .game-tools > button {
+  min-height: clamp(32px, 8.5vh, 42px);
+  margin-top: 5px;
+  padding: 5px 8px;
+  font-size: clamp(10px, 2.3vh, 13px);
+}
 body.mobile-layout .boss-bar { top: 4px; width: 42%; padding: 4px 7px; font-size: 8px; }
 body.mobile-layout .wave-bonus { top: 5px; max-width: 55%; padding: 4px 7px; font-size: 8px; }
 body.mobile-layout .result-card { width: 75%; max-height: 75%; padding: 20px; }
@@ -1471,3 +1640,1085 @@ body.mobile-layout .category-reward { font-size: 9px; padding: 5px 7px; margin-b
 
 #levelModal.multiplayer-map-picker .level-header button:first-child { justify-self: start; }
 #levelModal.multiplayer-map-picker .level-header button:last-child { justify-self: end; }
+
+/* Compact mobile dialogs share one size budget; their content scrolls inside. */
+body.mobile-layout #app .modal,
+body.mobile-layout #app .result-modal { position: absolute; padding: 0; }
+body.mobile-layout #app .modal > :is(.panel, .code-note-card),
+body.mobile-layout #app .result-card,
+body.mobile-layout #app .auth-card {
+  width: 75%;
+  max-width: 75%;
+  height: auto;
+  max-height: 75%;
+  min-height: 0;
+  padding: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 1.35;
+  scrollbar-width: thin;
+}
+body.mobile-layout #app :is(#inventoryModal, #levelModal, #mobIndexModal) > .panel { height: 75%; }
+body.mobile-layout #app .modal .panel-head { top: -10px; gap: 8px; margin: -2px -2px 7px; padding: 5px 2px; }
+body.mobile-layout #app .modal .panel-head h2 { font-size: 15px; }
+body.mobile-layout #app .modal button { min-height: 28px; font-size: 10px; padding: 4px 7px; }
+body.mobile-layout #app .modal input { min-width: 0; padding: 6px 8px; font-size: 12px; }
+body.mobile-layout #app .modal input[type="range"] { padding: 0; }
+body.mobile-layout #app :is(.auth-body, .settings-body, .multiplayer-body, .exchange-body, .code-card) { gap: 8px; }
+body.mobile-layout #app .auth-body label { gap: 3px; }
+body.mobile-layout #app :is(.auth-status, #codeStatus):empty { display: none; }
+body.mobile-layout #app .auth-card { padding: 16px 20px; }
+body.mobile-layout #app .auth-card h1 { margin: 10px 0 17px; font-size: clamp(24px, 4vw, 42px); text-shadow: 0 4px #66460a; }
+body.mobile-layout #app .auth-actions { width: min(100%, 280px); gap: 8px; }
+body.mobile-layout #app .auth-card button { min-height: 30px; padding: 6px 10px; font-size: 12px; }
+body.mobile-layout #app .guest-play { width: min(100%, 280px); margin-top: 10px; }
+body.mobile-layout #app #authIntro { margin-top: 12px; padding: 5px 7px; font-size: 10px; }
+body.mobile-layout #app :is(.tower-grid, .level-list) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body.mobile-layout #app .tower-card-head .tower-meta { width: 100%; max-width: none; }
+body.mobile-layout #app .tower-meta span { white-space: nowrap; }
+body.mobile-layout #app .level-card h3 { font-size: 12px; }
+body.mobile-layout #app .exchange-balances > span { padding: 7px; }
+body.mobile-layout #app .mode-option { min-height: 60px; padding: 8px; }
+body.mobile-layout #app .code-note-paper { width: 100%; padding: 28px 12px 12px; gap: 10px; }
+body.mobile-layout #app .result-card h2 { margin-bottom: 10px; font-size: 32px; }
+
+/* Keep the mode picker balanced instead of compressing it into a thin strip. */
+#modeModal .mode-card { padding: 24px; }
+#modeModal .panel-head {
+  position: static;
+  margin: 0 0 20px;
+  padding: 0 0 16px;
+  gap: 16px;
+  background: transparent;
+}
+#modeModal .mode-options { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+#modeModal .mode-option {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 132px;
+  padding: 22px 52px 22px 20px;
+  gap: 10px;
+}
+#modeModal .mode-option > b { font-size: 20px; line-height: 1.2; }
+#modeModal .mode-option > span { max-width: 100%; font-size: 14px; line-height: 1.5; }
+#modeModal .mode-option::before {
+  top: 50%;
+  right: 14px;
+  width: 28px;
+  font-size: 28px;
+  text-align: center;
+  transform: translateY(-50%);
+}
+#modeModal #multiplayerMode::before { content: "◆"; font-size: 24px; letter-spacing: 0; }
+body.mobile-layout #app #modeModal > .mode-card { padding: 18px; }
+body.mobile-layout #app #modeModal .panel-head { margin: 0 0 16px; padding: 0 0 12px; gap: 12px; }
+body.mobile-layout #app #modeModal .panel-head h2 { font-size: 16px; }
+body.mobile-layout #app #modeModal .close-button { min-height: 32px; padding: 6px 12px; }
+body.mobile-layout #app #modeModal .mode-options { gap: 14px; padding-bottom: 4px; }
+body.mobile-layout #app #modeModal .mode-option {
+  min-height: 100px;
+  padding: 14px 38px 14px 14px;
+  gap: 8px;
+}
+body.mobile-layout #app #modeModal .mode-option > b { font-size: 13px; }
+body.mobile-layout #app #modeModal .mode-option > span { font-size: 10px; line-height: 1.5; }
+body.mobile-layout #app #modeModal .mode-option::before { right: 10px; width: 20px; font-size: 23px; }
+body.mobile-layout #app #modeModal #multiplayerMode::before { font-size: 20px; }
+
+/* A phone should use its real screen, not a smaller phone-shaped frame inside it. */
+body.mobile-layout {
+  display: block;
+  padding: 0;
+  background: var(--bg);
+}
+body.mobile-layout #app,
+body.mobile-layout:has(#game.active) #app {
+  width: 100vw;
+  height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+body.mobile-layout #app::before { display: none; }
+
+/* Scale every interactive element against the actual landscape phone height. */
+body.mobile-layout button {
+  min-height: clamp(32px, 9vh, 44px);
+  padding: clamp(5px, 1.6vh, 8px) clamp(8px, 2vw, 13px);
+  border-radius: 9px;
+  font-size: clamp(11px, 2.5vh, 14px);
+}
+body.mobile-layout .home-menu { width: min(62%, 590px); padding: clamp(18px, 5vh, 34px) clamp(24px, 5vw, 46px); }
+body.mobile-layout .home-menu h1 { margin: 3% 0 6%; font-size: clamp(34px, 10vh, 60px); }
+body.mobile-layout .home-kicker { font-size: clamp(9px, 2.2vh, 13px); }
+body.mobile-layout .play-button { min-height: clamp(38px, 11vh, 50px); font-size: clamp(13px, 3vh, 17px); }
+body.mobile-layout .settings-button {
+  width: clamp(42px, 11vh, 54px);
+  height: clamp(42px, 11vh, 54px);
+  font-size: clamp(20px, 5.2vh, 29px);
+}
+body.mobile-layout .settings-button > span { display: grid; place-items: center; width: 100%; height: 100%; line-height: 1; }
+body.mobile-layout .side-button {
+  width: min(26vw, 220px);
+  min-height: clamp(36px, 10vh, 48px);
+  font-size: clamp(10px, 2.3vh, 13px);
+}
+body.mobile-layout .home-status > span,
+body.mobile-layout .xp-wrap { padding: clamp(5px, 1.6vh, 8px) clamp(8px, 2vw, 12px); font-size: clamp(9px, 2.1vh, 12px); }
+
+body.mobile-layout #app .modal > :is(.panel, .code-note-card),
+body.mobile-layout #app .result-card,
+body.mobile-layout #app .auth-card {
+  width: min(75%, 680px);
+  max-width: 75%;
+  max-height: 75%;
+  padding: clamp(12px, 3.2vh, 20px);
+  font-size: clamp(10px, 2.25vh, 13px);
+}
+body.mobile-layout #app :is(#inventoryModal, #levelModal, #mobIndexModal) > .panel { height: 75%; }
+body.mobile-layout #app .modal .panel-head { top: calc(-1 * clamp(12px, 3.2vh, 20px)); margin: -2px -2px clamp(10px, 2.6vh, 15px); padding: 5px 2px clamp(8px, 2vh, 12px); }
+body.mobile-layout #app .modal .panel-head h2 { font-size: clamp(16px, 4.4vh, 22px); }
+body.mobile-layout #app .modal button { min-height: clamp(30px, 8vh, 40px); font-size: clamp(10px, 2.3vh, 13px); }
+body.mobile-layout #app .modal input { padding: clamp(6px, 1.8vh, 9px) clamp(8px, 2vw, 12px); font-size: clamp(12px, 2.6vh, 14px); }
+body.mobile-layout #app :is(.auth-body, .settings-body, .multiplayer-body, .exchange-body, .code-card) { gap: clamp(8px, 2vh, 12px); }
+body.mobile-layout #app .auth-card { padding: clamp(18px, 5vh, 32px); }
+body.mobile-layout #app .auth-card h1 { margin: clamp(9px, 2.5vh, 15px) 0 clamp(14px, 4vh, 24px); font-size: clamp(30px, 9vh, 52px); }
+body.mobile-layout #app .auth-actions { width: min(100%, 360px); gap: clamp(8px, 2vw, 12px); }
+body.mobile-layout #app .auth-card button { min-height: clamp(34px, 9vh, 44px); font-size: clamp(12px, 2.7vh, 15px); }
+body.mobile-layout #app .guest-play { width: min(100%, 360px); margin-top: clamp(10px, 2.5vh, 16px); }
+body.mobile-layout #app #authIntro { margin-top: clamp(12px, 3vh, 18px); font-size: clamp(10px, 2.25vh, 13px); }
+body.mobile-layout #app #modeModal > .mode-card { padding: clamp(16px, 4vh, 25px); }
+body.mobile-layout #app #modeModal .panel-head { margin-bottom: clamp(12px, 3vh, 18px); }
+body.mobile-layout #app #modeModal .panel-head h2 { font-size: clamp(17px, 4.5vh, 23px); }
+body.mobile-layout #app #modeModal .close-button { min-height: clamp(32px, 8.5vh, 42px); }
+body.mobile-layout #app #modeModal .mode-options { gap: clamp(12px, 3vw, 20px); }
+body.mobile-layout #app #modeModal .mode-option { min-height: clamp(94px, 27vh, 126px); padding: clamp(13px, 3.5vh, 19px) clamp(38px, 9vw, 58px) clamp(13px, 3.5vh, 19px) clamp(14px, 3vw, 20px); gap: clamp(7px, 1.8vh, 10px); }
+body.mobile-layout #app #modeModal .mode-option > b { font-size: clamp(13px, 3.1vh, 17px); }
+body.mobile-layout #app #modeModal .mode-option > span { font-size: clamp(10px, 2.4vh, 13px); }
+body.mobile-layout #app #modeModal .mode-option::before { font-size: clamp(20px, 5.5vh, 30px); }
+body.mobile-layout #app #modeModal #multiplayerMode::before { font-size: clamp(18px, 4.8vh, 27px); }
+
+/* Large touch displays still use the mobile layout, but need a proportionally
+   larger interface than a 390px-tall phone. */
+@media (min-height: 700px) and (orientation: landscape) {
+  body.mobile-layout .home-menu {
+    width: min(48vw, 760px);
+    padding: clamp(42px, 5vh, 64px) clamp(48px, 5vw, 76px);
+    border-radius: 28px;
+  }
+  body.mobile-layout .home-menu h1 { font-size: clamp(70px, 4.4vw, 90px); }
+  body.mobile-layout .home-kicker { font-size: clamp(14px, 1.1vw, 19px); }
+  body.mobile-layout .play-button { min-height: clamp(58px, 6vh, 70px); font-size: clamp(19px, 1.35vw, 25px); }
+  body.mobile-layout .settings-button {
+    width: clamp(62px, 5vw, 82px);
+    height: clamp(62px, 5vw, 82px);
+    font-size: clamp(30px, 2vw, 42px);
+  }
+  body.mobile-layout .side-button {
+    width: clamp(265px, 17vw, 340px);
+    min-height: clamp(62px, 6.5vh, 78px);
+    padding-inline: clamp(16px, 1.2vw, 24px);
+    font-size: clamp(18px, 1.3vw, 24px);
+  }
+  body.mobile-layout .side-button::before { width: 1.45em; margin-right: 8px; font-size: 1.15em; }
+  body.mobile-layout #openInventory { top: 27%; }
+  body.mobile-layout #openDailyRewards { top: 34.5%; }
+  body.mobile-layout #openExchange { top: 42%; }
+  body.mobile-layout #openMobIndex { top: 49.5%; }
+  body.mobile-layout .home-status { gap: 12px; }
+  body.mobile-layout .home-status > span,
+  body.mobile-layout .xp-wrap { padding: 10px 16px; font-size: clamp(15px, 1.05vw, 20px); }
+  body.mobile-layout .xp-bar { height: 8px; }
+
+  /* Give information-heavy pages room to breathe instead of scaling every
+     control up inside a narrow, tall column. */
+  body.mobile-layout #app .modal > :is(.panel, .code-note-card),
+  body.mobile-layout #app .result-card,
+  body.mobile-layout #app .auth-card { padding: clamp(22px, 2.6vh, 32px); font-size: clamp(13px, .9vw, 16px); }
+  body.mobile-layout #app .modal .panel-head h2 { font-size: clamp(24px, 1.55vw, 30px); }
+  body.mobile-layout #app .modal button { min-height: 42px; font-size: clamp(13px, .9vw, 16px); }
+  body.mobile-layout #app .modal input { padding: 10px 13px; font-size: clamp(14px, 1vw, 17px); }
+  body.mobile-layout #app .auth-card h1 { font-size: clamp(68px, 4.5vw, 92px); }
+  body.mobile-layout #app .auth-card button { min-height: 52px; font-size: clamp(16px, 1.15vw, 20px); }
+  body.mobile-layout #app #authIntro { font-size: clamp(13px, 1vw, 17px); }
+
+  body.mobile-layout #app :is(#inventoryModal .modal-card, #levelModal .modal-card, #mobIndexModal .mob-index-card, #dailyRewardsModal .daily-card) {
+    width: min(76vw, 1180px);
+    max-width: 76vw;
+    height: 76%;
+    max-height: 76%;
+    padding: clamp(18px, 2.3vh, 28px);
+  }
+  body.mobile-layout #app :is(#inventoryModal, #levelModal, #mobIndexModal, #dailyRewardsModal) .panel-head {
+    top: calc(-1 * clamp(18px, 2.3vh, 28px));
+    margin-bottom: clamp(12px, 1.8vh, 18px);
+  }
+  body.mobile-layout #app #inventoryModal .tower-grid,
+  body.mobile-layout #app #levelModal .level-list { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  body.mobile-layout #app #inventoryModal .loadout { gap: 10px; margin-bottom: 12px; }
+  body.mobile-layout #app #inventoryModal .loadout-slot { grid-template-rows: 52px auto; min-height: 78px; padding: 6px; font-size: 12px; }
+  body.mobile-layout #app #inventoryModal .loadout-slot img { width: 58px; height: 52px; }
+  body.mobile-layout #app #inventoryModal .tower-card { padding: 10px; gap: 6px; font-size: 13px; }
+  body.mobile-layout #app #inventoryModal .tower-card-head { grid-template-columns: minmax(0, 1fr) 66px; min-height: 70px; }
+  body.mobile-layout #app #inventoryModal .tower-card-head h3 { font-size: 17px; }
+  body.mobile-layout #app #inventoryModal .tower-card-art { width: 66px; height: 66px; }
+  body.mobile-layout #app #inventoryModal .chip,
+  body.mobile-layout #app #inventoryModal .tower-meta span { font-size: 11px; }
+  body.mobile-layout #app #inventoryModal .tower-stats > span { padding: 5px; font-size: 11px; }
+  body.mobile-layout #app #inventoryModal .tower-stats b { font-size: 15px; }
+  body.mobile-layout #app #inventoryModal .tower-effects { min-height: 50px; padding: 6px 8px; font-size: 11px; }
+  body.mobile-layout #app #inventoryModal .tower-effects b { font-size: 13px; }
+  body.mobile-layout #app #inventoryModal .tower-description { min-height: 48px; font-size: 12px; line-height: 1.35; }
+  body.mobile-layout #app #inventoryModal .tower-actions button { min-height: 38px; font-size: 13px; }
+  body.mobile-layout #app #levelModal .level-card { min-height: 178px; padding: 13px; }
+  body.mobile-layout #app #levelModal .level-card h3 { margin-bottom: 7px; font-size: 19px; }
+  body.mobile-layout #app #levelModal .level-card p { margin-top: 8px; font-size: 14px; line-height: 1.35; }
+  body.mobile-layout #app #levelModal .level-action { min-height: 40px; margin-top: 10px; font-size: 14px; }
+  body.mobile-layout #app #mobIndexModal .mob-index-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  body.mobile-layout #app #mobIndexModal .mob-card { min-height: 175px; padding: 9px; gap: 5px; font-size: 12px; }
+  body.mobile-layout #app #mobIndexModal .mob-portrait { width: 54px; height: 54px; }
+  body.mobile-layout #app #mobIndexModal .mob-card > b { font-size: 15px; }
+  body.mobile-layout #app #dailyRewardsModal .daily-rewards-grid { gap: 9px; }
+  body.mobile-layout #app #dailyRewardsModal .daily-reward { min-height: 175px; padding: 10px; }
+  body.mobile-layout #app #dailyRewardsModal .daily-reward > b { font-size: 19px; }
+
+  body.mobile-layout #app :is(#exchangeModal .exchange-card, #settingsModal .settings-card, #codeModal .code-card, #multiplayerModal .multiplayer-card, #modeModal .mode-card) { width: min(62vw, 760px); }
+
+  body.mobile-layout { --battle-sidebar-width: clamp(220px, 16vw, 310px); }
+  body.mobile-layout .gamebar { min-height: 78px; height: 78px; padding: 8px 12px; gap: 11px; }
+  body.mobile-layout .gamebar > div:nth-of-type(1) { flex-basis: 145px; }
+  body.mobile-layout .gamebar h2 { font-size: 24px; }
+  body.mobile-layout .gamebar p { font-size: 15px; }
+  body.mobile-layout .icon-button { width: 50px; }
+  body.mobile-layout .stats { gap: 10px; }
+  body.mobile-layout .stats > span,
+  body.mobile-layout #speedToggle,
+  body.mobile-layout #startWave,
+  body.mobile-layout #leaveMatch { min-height: 48px; padding: 8px 12px; font-size: clamp(14px, 1vw, 18px); }
+  body.mobile-layout .game-tools { padding: 10px; }
+  body.mobile-layout .game-tools h3 { margin-bottom: 8px; font-size: 23px; }
+  body.mobile-layout .battle-loadout { gap: 8px; }
+  body.mobile-layout .battle-card { grid-template-columns: 58px minmax(0, 1fr); min-height: 66px; padding: 5px; font-size: 13px; }
+  body.mobile-layout .battle-card-art { width: 58px; height: 58px; }
+  body.mobile-layout .battle-card-info b { font-size: 16px; }
+  body.mobile-layout .selected-info {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-left-width: 4px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  body.mobile-layout .selected-title { font-size: 20px; }
+  body.mobile-layout .selection-meta,
+  body.mobile-layout .upgrade-costs { gap: 6px; margin: 8px 0; }
+  body.mobile-layout .selection-meta span,
+  body.mobile-layout .upgrade-costs span { padding: 6px 8px; }
+  body.mobile-layout .selection-grid,
+  body.mobile-layout .upgrade-grid { gap: 5px 7px; font-size: 13px; }
+  body.mobile-layout .selection-note { margin-top: 8px; padding: 9px 10px; font-size: 14px; line-height: 1.4; }
+  body.mobile-layout .game-tools > button {
+    min-height: 52px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    font-size: 16px;
+  }
+}
+
+/* Keep the memo skin ahead of the older generic note rules above. */
+#codeNoteModal .code-note-card {
+  width: min(780px, 86vw);
+  max-width: min(780px, 86vw);
+  max-height: 84vh;
+  padding: 0;
+  overflow: visible;
+}
+#codeNoteModal .code-note-paper {
+  gap: 13px;
+  width: 100%;
+  max-height: 84vh;
+  padding: 30px;
+  border: 1px solid #ecd28e;
+  border-radius: 18px;
+  color: #2d210e;
+  background:
+    radial-gradient(circle at 13% 10%, #fff1bd8c 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 78%, #8f6a2630 0 2px, transparent 3px),
+    repeating-linear-gradient(0deg, #80621c0a 0 1px, transparent 1px 8px),
+    linear-gradient(145deg, #f0dda7, #cba85e);
+}
+#codeNoteModal .code-note-row { gap: 13px; }
+#codeNoteModal .code-note-close { top: -14px; right: -14px; }
+body.mobile-layout #app #codeNoteModal .code-note-card {
+  width: min(75%, 780px);
+  max-width: 75%;
+  max-height: 78%;
+  padding: 0;
+  overflow: visible;
+}
+body.mobile-layout #app #codeNoteModal .code-note-paper {
+  max-height: 78vh;
+  padding: clamp(14px, 3.5vh, 25px);
+  gap: clamp(7px, 1.8vh, 12px);
+}
+body.mobile-layout #app #codeNoteModal .code-note-close { top: -10px; right: -10px; }
+
+/* The mode choice is a primary decision, so it gets a little more presence. */
+body.mobile-layout #app #modeModal > .mode-card {
+  width: min(82%, 980px);
+  max-width: 82%;
+  padding: clamp(19px, 4.8vh, 30px);
+}
+body.mobile-layout #app #modeModal .panel-head {
+  margin-bottom: clamp(15px, 3.7vh, 23px);
+  padding-bottom: clamp(11px, 2.8vh, 17px);
+}
+body.mobile-layout #app #modeModal .mode-options { gap: clamp(15px, 3.5vw, 24px); }
+body.mobile-layout #app #modeModal .mode-option {
+  min-height: clamp(105px, 29vh, 148px);
+  padding: clamp(16px, 4vh, 24px) clamp(58px, 11vw, 78px) clamp(16px, 4vh, 24px) clamp(17px, 3.8vw, 25px);
+}
+body.mobile-layout #app #modeModal .mode-option > b { font-size: clamp(15px, 3.6vh, 21px); }
+body.mobile-layout #app #modeModal .mode-option > span { font-size: clamp(11px, 2.7vh, 15px); }
+#modeModal #multiplayerMode::before,
+body.mobile-layout #app #modeModal #multiplayerMode::before {
+  content: "◆◆";
+  width: 1.9em;
+  right: clamp(12px, 2vw, 22px);
+  color: #f2c54c8c;
+  font-size: clamp(20px, 5.3vh, 30px);
+  letter-spacing: .08em;
+  text-align: left;
+}
+@media (min-height: 700px) and (orientation: landscape) {
+  body.mobile-layout #app #modeModal > .mode-card { width: min(68vw, 980px); max-width: 68vw; }
+  body.mobile-layout #app #modeModal .panel-head h2 { font-size: 28px; }
+  body.mobile-layout #app #modeModal .mode-option > b { font-size: 20px; }
+  body.mobile-layout #app #modeModal .mode-option > span { font-size: 15px; }
+}
+
+/* Multiplayer diamonds split and float as a pair on hover. */
+#modeModal #multiplayerMode::before,
+#modeModal #multiplayerMode::after {
+  content: "◆";
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  width: 1em;
+  color: #d0aa48a8;
+  font-size: clamp(20px, 5.3vh, 30px);
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  text-shadow: 0 0 0 transparent;
+  pointer-events: none;
+  transition: color .24s ease, text-shadow .24s ease, transform .35s cubic-bezier(.2, 1.5, .4, 1);
+}
+body.mobile-layout #app #modeModal #multiplayerMode::before,
+body.mobile-layout #app #modeModal #multiplayerMode::after { content: "◆"; width: 1em; letter-spacing: 0; }
+#modeModal #multiplayerMode::before { right: clamp(27px, 3.4vw, 43px); transform: translateY(-50%) rotate(-5deg); }
+#modeModal #multiplayerMode::after { right: clamp(10px, 1.7vw, 21px); transform: translateY(-50%) rotate(5deg); }
+#modeModal #multiplayerMode:hover::before {
+  color: #ffd85c;
+  text-shadow: 0 0 10px #ffd85ca8, 0 0 24px #ffba3680;
+  animation: multiplayerDiamondLeft .72s ease-in-out infinite alternate;
+}
+#modeModal #multiplayerMode:hover::after {
+  color: #ffe17a;
+  text-shadow: 0 0 10px #ffe17ab8, 0 0 24px #ffba3680;
+  animation: multiplayerDiamondRight .72s .12s ease-in-out infinite alternate;
+}
+@keyframes multiplayerDiamondLeft {
+  from { transform: translate(-2px, -50%) rotate(-8deg) scale(1.02); }
+  to { transform: translate(-9px, calc(-50% - 5px)) rotate(-22deg) scale(1.2); }
+}
+@keyframes multiplayerDiamondRight {
+  from { transform: translate(2px, -50%) rotate(8deg) scale(1.02); }
+  to { transform: translate(9px, calc(-50% + 5px)) rotate(22deg) scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #modeModal #multiplayerMode:hover::before { animation: none; transform: translate(-7px, -50%) rotate(-15deg) scale(1.12); }
+  #modeModal #multiplayerMode:hover::after { animation: none; transform: translate(7px, -50%) rotate(15deg) scale(1.12); }
+}
+
+/* Quiet, consistent hover feedback for both choices. */
+#modeModal #soloMode:hover::before,
+body.mobile-layout #app #modeModal #soloMode:hover::before {
+  color: #e7c45d;
+  text-shadow: 0 0 8px #e7c45d55;
+  transform: translate(-3px, -50%) rotate(4deg) scale(1.06);
+}
+#modeModal #multiplayerMode:hover::before,
+body.mobile-layout #app #modeModal #multiplayerMode:hover::before {
+  color: #e7c45d;
+  text-shadow: 0 0 8px #e7c45d55;
+  animation: none;
+  transform: translate(-3px, -52%) rotate(-7deg) scale(1.06);
+}
+#modeModal #multiplayerMode:hover::after,
+body.mobile-layout #app #modeModal #multiplayerMode:hover::after {
+  color: #e7c45d;
+  text-shadow: 0 0 8px #e7c45d55;
+  animation: none;
+  transform: translate(3px, -48%) rotate(7deg) scale(1.06);
+}
+
+/* Level selection scales with the device instead of stopping at a fixed cap. */
+body.mobile-layout #app #levelModal > .modal-card {
+  width: 92vw;
+  max-width: 92vw;
+  height: 88dvh;
+  max-height: 88dvh;
+  padding: clamp(15px, 2vw, 28px);
+  scrollbar-width: none;
+}
+body.mobile-layout #app #levelModal > .modal-card::-webkit-scrollbar { display: none; width: 0; height: 0; }
+body.mobile-layout #app #levelModal .panel-head {
+  top: calc(-1 * clamp(15px, 2vw, 28px));
+  margin-bottom: clamp(12px, 2vh, 20px);
+}
+body.mobile-layout #app #levelModal .stage-stars {
+  gap: clamp(3px, .5vw, 7px);
+  margin: 1px 0 clamp(6px, 1.4vh, 10px);
+  font-size: clamp(16px, 2.2vw, 24px);
+  line-height: 1;
+}
+
+/* Keep Daily Rewards compact instead of inheriting the tall utility-modal shell. */
+#dailyRewardsModal .daily-card {
+  height: auto;
+  min-height: 0;
+  max-height: min(91vh, 610px);
+  overflow-y: auto;
+}
+#dailyRewardsModal .panel-head {
+  margin-bottom: 18px;
+}
+#dailyRewardsModal .daily-body {
+  gap: 16px;
+}
+#dailyRewardsModal .daily-claim {
+  margin-top: 0;
+}
+body.mobile-layout #app #dailyRewardsModal .daily-card {
+  width: min(92%, 1500px);
+  max-width: min(92%, 1500px);
+  height: auto;
+  max-height: 88%;
+}
+body.mobile-layout #app #dailyRewardsModal .daily-body {
+  gap: 9px;
+}
+
+/* Mob Index typography must stay readable when the mobile layout is shown on
+   a large landscape display. Older phone rules used 6-9px labels here. */
+#mobIndexModal .mob-index-section > h3 {
+  font-size: clamp(21px, 1.55vw, 28px);
+}
+#mobIndexModal .mob-index-section > h3 span {
+  font-size: .82em;
+}
+#mobIndexModal .category-reward {
+  min-height: 58px;
+  padding: 11px 14px;
+  font-size: clamp(15px, 1vw, 18px);
+}
+#mobIndexModal .category-reward > span {
+  font-weight: 750;
+}
+#mobIndexModal .index-collect {
+  min-height: 42px;
+  padding: 8px 12px;
+  font-size: clamp(14px, .9vw, 16px);
+  line-height: 1.25;
+  white-space: normal;
+}
+#mobIndexModal .mob-card {
+  gap: 9px;
+  min-height: 285px;
+  padding: 14px;
+  font-size: 15px;
+}
+#mobIndexModal .mob-portrait {
+  width: 92px;
+  height: 92px;
+}
+#mobIndexModal .mob-card > b {
+  font-size: clamp(20px, 1.35vw, 24px);
+  line-height: 1.2;
+}
+#mobIndexModal .mob-card > small {
+  font-size: 14px;
+  line-height: 1.45;
+}
+#mobIndexModal .mob-stage-list {
+  gap: 4px;
+  padding: 9px 10px;
+}
+#mobIndexModal .mob-stage-list small,
+#mobIndexModal .mob-stat small {
+  font-size: 12px;
+  line-height: 1.2;
+}
+#mobIndexModal .mob-stage-list span,
+#mobIndexModal .mob-stage-chip {
+  font-size: 17px;
+  line-height: 1.25;
+}
+#mobIndexModal .mob-stat {
+  min-height: 57px;
+  padding: 7px;
+}
+#mobIndexModal .mob-stat b {
+  font-size: 20px;
+  line-height: 1.15;
+}
+#mobIndexModal .index-reward,
+#mobIndexModal .mob-card > .index-reward {
+  gap: 7px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+body.mobile-layout #app #mobIndexModal .category-reward {
+  min-height: clamp(48px, 8vh, 62px);
+  padding: clamp(8px, 1.5vh, 12px) clamp(10px, 1vw, 15px);
+  font-size: clamp(12px, 2.15vh, 17px);
+}
+body.mobile-layout #app #mobIndexModal .category-reward .index-collect {
+  min-height: clamp(36px, 6vh, 46px);
+  font-size: clamp(12px, 1.9vh, 16px);
+}
+body.mobile-layout #app #mobIndexModal .mob-card {
+  min-height: clamp(175px, 34vh, 285px);
+  padding: clamp(9px, 1.5vh, 14px);
+  gap: clamp(5px, 1.1vh, 9px);
+  font-size: clamp(12px, 2vh, 16px);
+}
+body.mobile-layout #app #mobIndexModal .mob-portrait {
+  width: clamp(54px, 12vh, 92px);
+  height: clamp(54px, 12vh, 92px);
+}
+body.mobile-layout #app #mobIndexModal .mob-card > b {
+  font-size: clamp(17px, 2.8vh, 23px);
+}
+body.mobile-layout #app #mobIndexModal .mob-card > small {
+  font-size: clamp(12px, 1.9vh, 15px);
+}
+body.mobile-layout #app #mobIndexModal .mob-stage-list small,
+body.mobile-layout #app #mobIndexModal .mob-stat small {
+  font-size: clamp(10px, 1.65vh, 13px);
+}
+body.mobile-layout #app #mobIndexModal .mob-stage-list span,
+body.mobile-layout #app #mobIndexModal .mob-stage-chip {
+  font-size: clamp(13px, 2.25vh, 18px);
+}
+body.mobile-layout #app #mobIndexModal .mob-stat {
+  min-height: clamp(42px, 7.5vh, 58px);
+  padding: clamp(4px, 1vh, 7px);
+}
+body.mobile-layout #app #mobIndexModal .mob-stat b {
+  font-size: clamp(16px, 2.65vh, 21px);
+}
+body.mobile-layout #app #mobIndexModal .index-reward,
+body.mobile-layout #app #mobIndexModal .mob-card > .index-reward {
+  font-size: clamp(11px, 1.85vh, 15px);
+}
+body.mobile-layout #app #mobIndexModal .index-reward .index-collect {
+  min-height: clamp(34px, 6vh, 44px);
+  font-size: clamp(12px, 1.9vh, 15px);
+}
+
+/* Keep Claim All visible while the Mob Index entries scroll above it. */
+#mobIndexModal .mob-index-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#mobIndexModal .panel-head,
+#mobIndexModal .mob-index-actions {
+  flex: none;
+}
+#mobIndexModal .mob-index-list {
+  min-height: 0;
+  padding-right: 6px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+#mobIndexModal .mob-index-actions {
+  display: flex;
+  justify-content: center;
+  margin: 14px -22px -22px;
+  padding: 14px 22px 20px;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, #192229e8, #192229 34%);
+}
+#mobIndexModal .mob-index-actions button {
+  width: min(520px, 70%);
+  min-height: 48px;
+  font-size: clamp(15px, 1vw, 18px);
+}
+body.mobile-layout #app #mobIndexModal .mob-index-actions {
+  margin: clamp(10px, 1.5vh, 14px) calc(-1 * clamp(18px, 2.3vh, 28px)) calc(-1 * clamp(18px, 2.3vh, 28px));
+  padding: clamp(9px, 1.5vh, 14px) clamp(18px, 2.3vh, 28px) clamp(13px, 2vh, 20px);
+}
+body.mobile-layout #app #mobIndexModal .mob-index-actions button {
+  width: min(52%, 520px);
+  min-height: clamp(38px, 6vh, 48px);
+  font-size: clamp(13px, 2vh, 17px);
+}
+
+/* Use the landscape space properly: six compact cards on wide displays. */
+#mobIndexModal .mob-index-card {
+  width: min(94vw, 1900px);
+  max-width: 94vw;
+  height: 90vh;
+  max-height: 90vh;
+}
+#mobIndexModal .mob-index-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+}
+#mobIndexModal .mob-card {
+  min-height: 255px;
+  padding: 11px;
+  gap: 7px;
+}
+#mobIndexModal .mob-portrait {
+  width: 78px;
+  height: 78px;
+}
+#mobIndexModal .mob-stage-list {
+  padding: 7px 8px;
+}
+#mobIndexModal .mob-stat {
+  min-height: 50px;
+  padding: 5px;
+}
+#mobIndexModal .mob-index-actions {
+  margin-top: 10px;
+}
+body.mobile-layout #app #mobIndexModal .mob-index-card {
+  width: 94vw;
+  max-width: 94vw;
+  height: 88%;
+  max-height: 88%;
+}
+body.mobile-layout #app #mobIndexModal .mob-index-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, .7vw, 10px);
+}
+body.mobile-layout #app #mobIndexModal .mob-card {
+  min-height: clamp(165px, 30vh, 245px);
+  padding: clamp(7px, 1.1vh, 11px);
+  gap: clamp(4px, .8vh, 7px);
+}
+body.mobile-layout #app #mobIndexModal .mob-portrait {
+  width: clamp(50px, 10vh, 78px);
+  height: clamp(50px, 10vh, 78px);
+}
+body.mobile-layout #app #mobIndexModal .mob-stat {
+  min-height: clamp(38px, 6.5vh, 50px);
+}
+@media (max-width: 1100px) {
+  body.mobile-layout #app #mobIndexModal .mob-index-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  body.mobile-layout #app #mobIndexModal .mob-index-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Hide browser scrollbar chrome everywhere while preserving wheel, touch,
+   keyboard, and programmatic scrolling. */
+#app,
+#app * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+#app::-webkit-scrollbar,
+#app *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
+/* Match Solo's outlined diamond while keeping a small two-player overlap. */
+#modeModal #multiplayerMode::before,
+#modeModal #multiplayerMode::after,
+body.mobile-layout #app #modeModal #multiplayerMode::before,
+body.mobile-layout #app #modeModal #multiplayerMode::after {
+  content: "◈";
+  width: 1em;
+  color: #b69a4f9e;
+  font-size: clamp(21px, 5.3vh, 31px);
+  letter-spacing: 0;
+}
+#modeModal #multiplayerMode::before,
+body.mobile-layout #app #modeModal #multiplayerMode::before {
+  right: 1.05em;
+  transform: translateY(-50%);
+}
+#modeModal #multiplayerMode::after,
+body.mobile-layout #app #modeModal #multiplayerMode::after {
+  right: .52em;
+  transform: translateY(-50%);
+}
+#modeModal #multiplayerMode:hover::before,
+body.mobile-layout #app #modeModal #multiplayerMode:hover::before {
+  color: #e7c45d;
+  animation: none;
+  transform: translate(-1px, -52%) rotate(-2deg) scale(1.04);
+}
+#modeModal #multiplayerMode:hover::after,
+body.mobile-layout #app #modeModal #multiplayerMode:hover::after {
+  color: #e7c45d;
+  animation: none;
+  transform: translate(1px, -48%) rotate(2deg) scale(1.04);
+}
+
+/* Unified responsive scale. Device classes are refreshed on resize/rotation. */
+:root {
+  --ui-xs: clamp(11px, .72vw, 14px);
+  --ui-sm: clamp(13px, .84vw, 16px);
+  --ui-md: clamp(15px, 1vw, 18px);
+  --ui-lg: clamp(19px, 1.35vw, 26px);
+  --ui-xl: clamp(26px, 2vw, 38px);
+  --ui-title: clamp(48px, 5vw, 88px);
+  --ui-gap: clamp(7px, .7vw, 13px);
+  --ui-pad: clamp(13px, 1.25vw, 22px);
+  --ui-control-h: clamp(40px, 3vw, 52px);
+  --ui-radius: clamp(8px, .65vw, 13px);
+  --ui-panel-w: min(94vw, 1900px);
+  --ui-panel-h: 90dvh;
+  --ui-hud-h: clamp(72px, 6vw, 96px);
+  --ui-sidebar-w: clamp(230px, 16vw, 300px);
+}
+body[data-device="tablet"] {
+  --ui-xs: clamp(10px, 1.35vw, 13px);
+  --ui-sm: clamp(11px, 1.55vw, 14px);
+  --ui-md: clamp(13px, 1.8vw, 16px);
+  --ui-lg: clamp(17px, 2.25vw, 22px);
+  --ui-xl: clamp(23px, 3vw, 31px);
+  --ui-title: clamp(38px, 6vw, 68px);
+  --ui-gap: clamp(6px, 1vw, 10px);
+  --ui-pad: clamp(11px, 1.7vw, 18px);
+  --ui-control-h: clamp(36px, 5vw, 46px);
+  --ui-panel-w: 96vw;
+  --ui-panel-h: 92dvh;
+  --ui-hud-h: clamp(62px, 9vh, 78px);
+  --ui-sidebar-w: clamp(180px, 18vw, 245px);
+}
+body[data-device="phone"] {
+  --ui-xs: clamp(10px, 2.3vh, 12px);
+  --ui-sm: clamp(10px, 2.45vh, 12px);
+  --ui-md: clamp(11px, 2.8vh, 14px);
+  --ui-lg: clamp(15px, 3.6vh, 19px);
+  --ui-xl: clamp(20px, 5vh, 27px);
+  --ui-title: clamp(32px, 9vh, 52px);
+  --ui-gap: clamp(4px, 1.15vh, 7px);
+  --ui-pad: clamp(8px, 2vh, 13px);
+  --ui-control-h: clamp(31px, 8.5vh, 40px);
+  --ui-radius: 8px;
+  --ui-panel-w: 97vw;
+  --ui-panel-h: 94dvh;
+  --ui-hud-h: clamp(52px, 14vh, 64px);
+  --ui-sidebar-w: clamp(135px, 18vw, 180px);
+}
+
+body[data-device] #app,
+body[data-device] #app * {
+  letter-spacing: 0;
+}
+body[data-device] #app {
+  font-size: var(--ui-md);
+}
+body[data-device] #app button,
+body[data-device] #app input,
+body[data-device] #app select {
+  max-width: 100%;
+  min-height: var(--ui-control-h);
+  padding: calc(var(--ui-pad) * .48) calc(var(--ui-pad) * .78);
+  border-radius: var(--ui-radius);
+  font-size: var(--ui-md);
+  line-height: 1.18;
+}
+body[data-device] #app button {
+  overflow-wrap: anywhere;
+}
+body[data-device] #app :is(p, small, label, .tower-description, .selection-note, .room-info) {
+  font-size: var(--ui-sm);
+  line-height: 1.4;
+}
+body[data-device] #app :is(h2, .panel-head h2) { font-size: var(--ui-xl); }
+body[data-device] #app h3 { font-size: var(--ui-lg); }
+
+body[data-device] #app .modal { padding: max(1.5dvh, env(safe-area-inset-top)) max(1.5vw, env(safe-area-inset-right)) max(1.5dvh, env(safe-area-inset-bottom)) max(1.5vw, env(safe-area-inset-left)); }
+body[data-device] #app .modal > :is(.panel, .code-note-card) {
+  max-width: var(--ui-panel-w);
+  max-height: var(--ui-panel-h);
+  padding: var(--ui-pad);
+  border-radius: calc(var(--ui-radius) * 1.25);
+  font-size: var(--ui-md);
+}
+body[data-device] #app .panel-head {
+  top: calc(-1 * var(--ui-pad));
+  gap: var(--ui-gap);
+  margin: 0 0 var(--ui-gap);
+  padding: calc(var(--ui-pad) * .55) 2px;
+}
+body[data-device] #app .panel-head span { font-size: var(--ui-sm); }
+body[data-device] #app :is(.auth-form, .settings-card, .exchange-card, .code-card, .multiplayer-card, .mode-card) {
+  width: min(88vw, 780px);
+}
+body[data-device="phone"] #app :is(.auth-form, .settings-card, .exchange-card, .code-card, .multiplayer-card, .mode-card) {
+  width: min(94vw, 680px);
+}
+
+body[data-device] #app .home-menu {
+  width: min(58vw, 760px);
+  padding: calc(var(--ui-pad) * 2) calc(var(--ui-pad) * 2.5);
+}
+body[data-device] #app .home-menu h1 { font-size: var(--ui-title); }
+body[data-device] #app .home-kicker { font-size: var(--ui-sm); }
+body[data-device] #app .play-button { min-height: calc(var(--ui-control-h) * 1.25); font-size: var(--ui-lg); }
+body[data-device] #app .side-button {
+  width: clamp(190px, 19vw, 340px);
+  min-height: calc(var(--ui-control-h) * 1.15);
+  padding-inline: var(--ui-pad);
+  font-size: calc(var(--ui-md) * 1.04);
+}
+body[data-device] #app .settings-button {
+  width: calc(var(--ui-control-h) * 1.25);
+  height: calc(var(--ui-control-h) * 1.25);
+  min-height: 0;
+  padding: 0;
+  font-size: var(--ui-lg);
+}
+body[data-device] #app .home-status { gap: var(--ui-gap); }
+body[data-device] #app .home-status > span,
+body[data-device] #app .xp-wrap {
+  min-height: var(--ui-control-h);
+  padding: calc(var(--ui-pad) * .5) var(--ui-pad);
+  font-size: var(--ui-md);
+}
+body[data-device="phone"] #app .home-menu { width: min(62vw, 520px); padding: calc(var(--ui-pad) * 1.3) calc(var(--ui-pad) * 1.8); }
+body[data-device="phone"] #app .side-button { width: min(29vw, 232px); }
+body[data-device="phone"] #app #openDailyRewards { top: 32%; }
+body[data-device="phone"] #app #openExchange { top: 40%; }
+body[data-device="phone"] #app #openMobIndex { top: 48%; }
+
+body[data-device] #app #inventoryModal .modal-card,
+body[data-device] #app #mobIndexModal .mob-index-card,
+body[data-device] #app #levelModal .modal-card,
+body[data-device] #app #dailyRewardsModal .daily-card {
+  width: var(--ui-panel-w);
+  max-width: var(--ui-panel-w);
+  height: var(--ui-panel-h);
+  max-height: var(--ui-panel-h);
+}
+body[data-device] #app .loadout { gap: var(--ui-gap); }
+body[data-device] #app .loadout-slot { min-height: calc(var(--ui-control-h) * 1.55); padding: calc(var(--ui-pad) * .4); font-size: var(--ui-sm); }
+body[data-device] #app .tower-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ui-gap); }
+body[data-device="tablet"] #app .tower-grid,
+body[data-device="phone"] #app .tower-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body[data-device] #app .tower-card {
+  min-height: 0;
+  height: auto;
+  padding: calc(var(--ui-pad) * .7);
+  gap: calc(var(--ui-gap) * .65);
+  font-size: var(--ui-sm);
+}
+body[data-device] #app .tower-card-head { min-height: clamp(68px, 7vw, 100px); }
+body[data-device] #app .tower-card-head h3 { font-size: var(--ui-lg); }
+body[data-device] #app .tower-card-art { width: clamp(66px, 7vw, 105px); height: clamp(66px, 7vw, 105px); }
+body[data-device] #app :is(.chip, .tower-meta span) { padding: 3px 6px; font-size: var(--ui-xs); }
+body[data-device] #app .tower-stats > span { padding: calc(var(--ui-pad) * .4); font-size: var(--ui-xs); }
+body[data-device] #app .tower-stats b { font-size: var(--ui-md); }
+body[data-device] #app .tower-effects { min-height: 0; padding: calc(var(--ui-pad) * .45); font-size: var(--ui-xs); }
+body[data-device] #app .tower-effects b { font-size: var(--ui-sm); }
+body[data-device] #app .tower-description { min-height: 0; padding: calc(var(--ui-pad) * .45); font-size: var(--ui-sm); }
+body[data-device] #app .tower-actions button { min-height: var(--ui-control-h); font-size: var(--ui-sm); }
+
+body[data-device] #app .level-list { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ui-gap); }
+body[data-device="tablet"] #app .level-list,
+body[data-device="phone"] #app .level-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body[data-device] #app .level-card { min-height: calc(var(--ui-control-h) * 3.5); padding: var(--ui-pad); font-size: var(--ui-sm); }
+body[data-device] #app .level-card h3 { font-size: var(--ui-lg); }
+body[data-device] #app .level-action { min-height: var(--ui-control-h); font-size: var(--ui-sm); }
+
+body[data-device] #app .daily-rewards-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--ui-gap); }
+body[data-device] #app .daily-reward { min-height: clamp(150px, 23dvh, 235px); padding: calc(var(--ui-pad) * .7); font-size: var(--ui-sm); }
+body[data-device] #app .daily-reward > b { font-size: var(--ui-lg); }
+body[data-device] #app .daily-claim { min-height: var(--ui-control-h); font-size: var(--ui-md); }
+
+body[data-device] #app #mobIndexModal .mob-index-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--ui-gap); }
+body[data-device="tablet"] #app #mobIndexModal .mob-index-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+body[data-device="phone"] #app #mobIndexModal .mob-index-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+body[data-device] #app #mobIndexModal .mob-card {
+  min-height: 0;
+  padding: calc(var(--ui-pad) * .65);
+  gap: calc(var(--ui-gap) * .7);
+  font-size: var(--ui-sm);
+}
+body[data-device] #app #mobIndexModal .mob-portrait { width: clamp(54px, 7dvh, 82px); height: clamp(54px, 7dvh, 82px); }
+body[data-device] #app #mobIndexModal .mob-card > b { font-size: var(--ui-lg); }
+body[data-device] #app #mobIndexModal .mob-card > small,
+body[data-device] #app #mobIndexModal .index-reward { font-size: var(--ui-sm); }
+body[data-device] #app #mobIndexModal :is(.mob-stage-list small, .mob-stat small) { font-size: var(--ui-xs); }
+body[data-device] #app #mobIndexModal :is(.mob-stage-list span, .mob-stage-chip) { font-size: var(--ui-md); }
+body[data-device] #app #mobIndexModal .mob-stat { min-height: calc(var(--ui-control-h) * 1.05); padding: calc(var(--ui-pad) * .35); }
+body[data-device] #app #mobIndexModal .mob-stat b { font-size: var(--ui-md); }
+body[data-device] #app #mobIndexModal .category-reward { min-height: calc(var(--ui-control-h) * 1.2); padding: calc(var(--ui-pad) * .55); font-size: var(--ui-sm); }
+body[data-device] #app #mobIndexModal .index-collect { min-height: var(--ui-control-h); font-size: var(--ui-sm); }
+body[data-device] #app #mobIndexModal .mob-index-actions button { min-height: var(--ui-control-h); font-size: var(--ui-md); }
+
+body[data-device] #app .gamebar {
+  gap: var(--ui-gap);
+  min-height: var(--ui-hud-h);
+  height: var(--ui-hud-h);
+  padding: calc(var(--ui-pad) * .45) calc(var(--ui-pad) * .7);
+  overflow: hidden;
+}
+body[data-device] #app .gamebar > div:nth-of-type(1) { flex-basis: clamp(92px, 10vw, 155px); }
+body[data-device] #app .gamebar h2 { font-size: var(--ui-lg); }
+body[data-device] #app .gamebar p { font-size: var(--ui-sm); }
+body[data-device] #app .icon-button { flex: 0 0 var(--ui-control-h); width: var(--ui-control-h); min-height: var(--ui-control-h); padding: 0; }
+body[data-device] #app .stats { flex: 1 1 auto; min-width: 0; gap: var(--ui-gap); }
+body[data-device] #app .stats > span,
+body[data-device] #app :is(#speedToggle, #startWave, #leaveMatch) {
+  min-height: var(--ui-control-h);
+  padding: calc(var(--ui-pad) * .45) calc(var(--ui-pad) * .6);
+  font-size: var(--ui-sm);
+  white-space: nowrap;
+}
+body[data-device] #app .battle-wrap { grid-template-columns: var(--ui-sidebar-w) minmax(0, 1fr); }
+body[data-device] #app .game-tools { padding: calc(var(--ui-pad) * .65); }
+body[data-device] #app .game-tools h3 { font-size: var(--ui-lg); }
+body[data-device] #app .battle-loadout { gap: calc(var(--ui-gap) * .7); }
+body[data-device] #app .battle-card {
+  grid-template-columns: calc(var(--ui-control-h) * 1.25) minmax(0, 1fr);
+  min-height: calc(var(--ui-control-h) * 1.42);
+  padding: calc(var(--ui-pad) * .3);
+  font-size: var(--ui-xs);
+}
+body[data-device] #app .battle-card-art { width: calc(var(--ui-control-h) * 1.2); height: calc(var(--ui-control-h) * 1.2); }
+body[data-device] #app .battle-card-info b { font-size: var(--ui-sm); }
+body[data-device] #app .selected-info { padding: calc(var(--ui-pad) * .55); font-size: var(--ui-sm); }
+body[data-device] #app .selected-title { font-size: var(--ui-lg); }
+body[data-device] #app :is(.selection-grid, .upgrade-grid) { font-size: var(--ui-xs); }
+body[data-device] #app .game-tools > button { min-height: var(--ui-control-h); font-size: var(--ui-sm); }
+
+body[data-device="phone"] #app .stats { gap: 3px; }
+body[data-device="phone"] #app .stats > span,
+body[data-device="phone"] #app :is(#speedToggle, #startWave, #leaveMatch) { padding-inline: 5px; font-size: var(--ui-xs); }
+body[data-device="phone"] #app .gamebar > div:nth-of-type(1) { flex-basis: 82px; }
+body[data-device="phone"] #app .battle-card-info b { font-size: var(--ui-xs); }
+body[data-device="phone"] #app :is(.selection-grid, .upgrade-grid) { font-size: clamp(10px, 2.3vh, 12px); }
+
+body[data-device] #app .result-card { width: min(88vw, 1100px); max-height: var(--ui-panel-h); padding: calc(var(--ui-pad) * 2); }
+body[data-device] #app .result-card h2 { font-size: var(--ui-title); }
+body[data-device] #app .result-rewards span { padding: var(--ui-pad); font-size: var(--ui-md); }
+body[data-device] #app .result-rewards b { font-size: var(--ui-xl); }
+
+/* Daily Rewards is a compact dialog, never a full-height content browser. */
+body[data-device] #app #dailyRewardsModal .daily-card {
+  width: min(94vw, 1900px);
+  max-width: min(94vw, 1900px);
+  height: auto;
+  min-height: 0;
+  max-height: min(90dvh, 620px);
+  overflow-y: auto;
+}
+body[data-device] #app #dailyRewardsModal .daily-body { gap: var(--ui-gap); }
+body[data-device] #app #dailyRewardsModal .daily-reward { min-height: clamp(145px, 23dvh, 225px); }
+body[data-device] #app #dailyRewardsModal .daily-claim { margin-top: 0; }
+body[data-device="tablet"] #app #dailyRewardsModal .daily-card { max-height: min(92dvh, 580px); }
+body[data-device="phone"] #app #dailyRewardsModal .daily-card { width: 97vw; max-width: 97vw; max-height: 94dvh; }
+body[data-device="phone"] #app #dailyRewardsModal .daily-reward { min-height: clamp(118px, 31dvh, 160px); }
+
+/* Keep the game controls right of center, but give them room from the edge. */
+#game.active .gamebar #leaveMatch {
+  margin-right: clamp(56px, 8vw, 300px);
+}
+
+/* Keep short control labels intact. Buttons grow with their copy instead of
+   breaking an action into fragments such as "Joi" / "n". */
+body[data-device] #app button {
+  overflow-wrap: normal;
+  word-break: keep-all;
+  white-space: nowrap;
+}
+
+/* Give the primary mode decision more of the available screen. */
+body[data-device] #app #modeModal > .mode-card {
+  width: min(82vw, 1320px);
+  max-width: min(82vw, 1320px);
+  padding: clamp(18px, 1.8vw, 28px);
+}
+body[data-device] #app #modeModal .panel-head {
+  margin-bottom: clamp(14px, 1.5vw, 22px);
+  padding-bottom: clamp(10px, 1.1vw, 16px);
+}
+body[data-device] #app #modeModal .mode-options {
+  gap: clamp(12px, 1.2vw, 20px);
+}
+body[data-device] #app #modeModal .mode-option {
+  min-height: clamp(150px, 18dvh, 185px);
+  padding: clamp(16px, 1.6vw, 24px) clamp(60px, 5.8vw, 84px) clamp(16px, 1.6vw, 24px) clamp(18px, 1.8vw, 28px);
+}
+body[data-device] #app #modeModal .mode-option > b {
+  font-size: clamp(20px, 1.55vw, 27px);
+}
+body[data-device] #app #modeModal .mode-option > span {
+  max-width: 100%;
+  font-size: clamp(13px, 1vw, 16px);
+  white-space: nowrap;
+}
+
+/* Preserve room-action widths while allowing the code field to take the
+   remaining space. */
+body[data-device] #app .multiplayer-actions {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+body[data-device] #app .join-room {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  min-width: 0;
+}
+body[data-device] #app #createRoom,
+body[data-device] #app .join-room button {
+  min-width: max-content;
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  body[data-device] #app #modeModal > .mode-card {
+    width: 96vw;
+    max-width: 96vw;
+    padding: 14px;
+  }
+  body[data-device] #app #modeModal .mode-option {
+    min-height: 120px;
+    padding: 16px 58px 16px 18px;
+  }
+  body[data-device] #app #modeModal .mode-option > b { font-size: 18px; }
+  body[data-device] #app #modeModal .mode-option > span { font-size: 12px; }
+}
+
+body[data-device] #app #mobIndexModal .mob-resistances {
+  display: block;
+  padding: 5px 7px;
+  border-radius: 6px;
+  color: #f0c65a;
+  background: #12191e;
+  font-size: var(--ui-xs);
+  line-height: 1.3;
+}

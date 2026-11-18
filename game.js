@@ -8,6 +8,31 @@ document.body.classList.toggle("laptop-layout", forceLaptopLayout);
 const isTouchDevice = forceMobileLayout || window.matchMedia("(pointer: coarse)").matches;
 document.body.classList.toggle("mobile-layout", isTouchDevice && !forceLaptopLayout);
 
+function updateDeviceProfile() {
+  const viewport = window.visualViewport;
+  const width = Math.round(viewport?.width || window.innerWidth);
+  const height = Math.round(viewport?.height || window.innerHeight);
+  const shortSide = Math.min(width, height);
+  const longSide = Math.max(width, height);
+  let profile = "desktop";
+  if (!forceLaptopLayout && isTouchDevice) {
+    profile = shortSide <= 540 || longSide <= 980 ? "phone" : "tablet";
+  }
+  document.body.dataset.device = profile;
+  document.documentElement.style.setProperty("--viewport-width", `${width}px`);
+  document.documentElement.style.setProperty("--viewport-height", `${height}px`);
+}
+
+let deviceProfileFrame = 0;
+function scheduleDeviceProfileUpdate() {
+  cancelAnimationFrame(deviceProfileFrame);
+  deviceProfileFrame = requestAnimationFrame(updateDeviceProfile);
+}
+updateDeviceProfile();
+window.addEventListener("resize", scheduleDeviceProfileUpdate, { passive: true });
+window.addEventListener("orientationchange", scheduleDeviceProfileUpdate, { passive: true });
+window.visualViewport?.addEventListener("resize", scheduleDeviceProfileUpdate, { passive: true });
+
 async function requestLandscapeMode() {
   try {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
@@ -27,11 +52,13 @@ async function requestLandscapeMode() {
 if (isTouchDevice && !forceLaptopLayout) requestLandscapeMode();
 const ctx = canvas.getContext("2d");
 const MAX_TOWER_LEVEL = 5;
-const WAVE_HEALTH_GROWTH_FACTOR = 0.8;
 // A broad difficulty increase shared by every stage. The combined pressure is
 // roughly 15%: 8% more health, 5% more speed and 2% tighter spawn spacing.
 const GLOBAL_STAGE_DIFFICULTY = { hp: 1.08, speed: 1.05, spacing: 0.98 };
 const MAX_ACTIVE_SHOTS = 90;
+const MULTIPLAYER_SYNC_INTERVAL = 0.04;
+let nextNetworkShotId = 1;
+const networkShotPrefix = Math.random().toString(36).slice(2);
 const MAX_ACTIVE_CHAIN_SHOTS = 12;
 const CHAIN_RANGE = 75;
 const CHAIN_RANGE_SQ = CHAIN_RANGE * CHAIN_RANGE;
@@ -55,7 +82,7 @@ const TOWER_PLACEMENT_LIMITS = {
   haste: 2,
   power: 2,
   orbital: 3,
-  rail: 6,
+  rail: 5,
 };
 const BASE_POINT = [940, 392];
 const BASE_RECT = { x: 900, y: 336, w: 96, h: 112 };
@@ -79,7 +106,7 @@ const state = {
   authToken: null,
   playerLevel: 1,
   xp: 0,
-  gems: 15,
+  gems: 0,
   unlocked: new Set(),
   clearedStages: new Set(),
   stageStars: {},
@@ -94,6 +121,7 @@ const state = {
   selectedTowerType: null,
   selectedPlaced: null,
   hoveredTower: null,
+  hoveredMob: null,
   sellConfirmTower: null,
   previewX: null,
   previewY: null,
@@ -112,6 +140,7 @@ const state = {
   placed: [],
   soldiers: [],
   shots: [],
+  seenRemoteShots: new Set(),
   spawns: [],
   startedWaves: new Set(),
   kills: 0,
@@ -759,7 +788,7 @@ const levelData = Array.from({ length: 15 }, (_, i) => {
     id: n,
     name: `Stage ${n}`,
     rewardGems: 16 + n * 7,
-    rewardXp: 105 + n * 48,
+    rewardXp: Math.floor((105 + n * 48) / 3),
     baseHp: Math.max(10, 25 - Math.floor((n - 1) / 4) * 5),
     startCoins: startCoinsForStage(n),
     waves: n === 15 ? 25 : Math.min(25, 10 + Math.floor((n - 1) / 4) * 5),
@@ -819,6 +848,7 @@ const els = {
   mobIndexModal: document.querySelector("#mobIndexModal"),
   mobIndexList: document.querySelector("#mobIndexList"),
   mobIndexCount: document.querySelector("#mobIndexCount"),
+  claimAllMobRewards: document.querySelector("#claimAllMobRewards"),
   openLevels: document.querySelector("#openLevels"),
   closeLevels: document.querySelector("#closeLevels"),
   returnToMultiplayer: document.querySelector("#returnToMultiplayer"),
@@ -1402,7 +1432,7 @@ function playAsGuest() {
     guestSave = JSON.parse(localStorage.getItem("ironclad-td-guest-save"));
   } catch { /* Start a fresh guest profile if its saved data is unreadable. */ }
   applySaveData(guestSave && typeof guestSave === "object" && !Array.isArray(guestSave)
-    ? guestSave : { gems: 15, loadout: [...STARTER_TOWER_IDS] });
+    ? guestSave : { gems: 0, metaCoins: 0, loadout: [...STARTER_TOWER_IDS] });
   save();
   els.authScreen.classList.remove("active");
   closeModal(els.authModal);
@@ -1554,6 +1584,62 @@ const MOB_SHAPE_GROUPS = [
   ["spiked", "Spiked"],
 ];
 
+const TOWER_ATTACK_TYPES = {
+  dart: "Kinetic", sniper: "Kinetic", rail: "Kinetic", ranger: "Kinetic",
+  ice: "Elemental", venom: "Elemental", ember: "Elemental",
+  spark: "Energy", tesla: "Energy", void: "Energy", orbital: "Energy",
+};
+
+const MOB_RESISTANCES_BY_NAME = {
+  "Rust Crawler": { kinetic: 0.2 },
+  "Coal Golem": { kinetic: 0.2, elemental: 0.2 },
+  "Frost Wretch": { elemental: 0.25 },
+  "Iron Mite": { kinetic: 0.25, energy: 0.15 },
+  "Stonejaw": { kinetic: 0.25 },
+  "Void Leech": { energy: 0.2 },
+  "Phase Imp": { energy: 0.2, elemental: 0.15 },
+  "Storm Wisp": { energy: 0.25 },
+  "Thunder Brute": { kinetic: 0.15, energy: 0.2 },
+  "Lava Guard": { kinetic: 0.2, elemental: 0.25 },
+  "Night Shard": { elemental: 0.2, energy: 0.2 },
+  "Final Horror": { kinetic: 0.15, energy: 0.15 },
+  "Shell Bug": { kinetic: 0.2 },
+  "Crystal Creep": { elemental: 0.2 },
+  "Bone Knight": { kinetic: 0.2, energy: 0.15 },
+  "Magma Ox": { kinetic: 0.2, elemental: 0.2 },
+  "Feral Wisp": { energy: 0.2 },
+  "Ironhorn": { kinetic: 0.25 },
+  "Ashmaw": { elemental: 0.2 },
+  "Frostfang": { elemental: 0.2 },
+  "Voidbite": { energy: 0.2 },
+  "Stoneback": { kinetic: 0.2 },
+  "Stormskull": { energy: 0.25 },
+  "Hellgrin": { elemental: 0.2, energy: 0.15 },
+  "Mossback": { kinetic: 0.15 },
+  "Ash Sprite": { energy: 0.15 },
+  "Needle Fiend": { kinetic: 0.15, elemental: 0.1 },
+  "Plague Bat": { elemental: 0.15 },
+  "Marrow Hulk": { kinetic: 0.15 },
+  "Thornback": { energy: 0.15 },
+  "Root Mauler": { kinetic: 0.15 },
+};
+
+function mobResistances(monster, isBoss = false) {
+  if (isBoss) return { kinetic: 0.1, elemental: 0.1, energy: 0.1 };
+  return MOB_RESISTANCES_BY_NAME[monster?.name] || {};
+}
+
+function mobResistanceLabels(monster, isBoss = false) {
+  const labels = { kinetic: "Kinetic", elemental: "Elemental", energy: "Energy" };
+  return Object.entries(mobResistances(monster, isBoss))
+    .filter(([, amount]) => amount > 0)
+    .map(([type, amount]) => `${labels[type]} ${Math.round(amount * 100)}%`);
+}
+
+function resistanceFactor(mob, type) {
+  return 1 - Math.min(0.5, Math.max(0, mob.resistances?.[type] || 0));
+}
+
 function allIndexMonsters() {
   const seen = new Set();
   return [...stageMonsters.flat(), ...extraMonsters].filter((monster) => {
@@ -1596,6 +1682,57 @@ function collectIndexReward(kind, key) {
   renderHome();
   renderMobIndex();
   toast(`Reward collected: +${indexRewardLabel(reward)}`, "reward");
+}
+
+function claimableIndexRewards() {
+  const rewards = [];
+  const monsters = allIndexMonsters();
+
+  monsters.forEach((monster) => {
+    if (state.mobIndex.has(monster.name) && !state.rewardedMobs.has(monster.name)) {
+      rewards.push({ kind: "mob", key: monster.name, reward: discoveryReward(false) });
+    }
+  });
+  stageBosses.forEach((boss) => {
+    if (state.mobIndex.has(boss.name) && !state.rewardedMobs.has(boss.name)) {
+      rewards.push({ kind: "mob", key: boss.name, reward: discoveryReward(true) });
+    }
+  });
+
+  [...MOB_SHAPE_GROUPS.map(([id]) => id), "bosses"].forEach((categoryId) => {
+    const entries = categoryId === "bosses"
+      ? stageBosses
+      : monsters.filter((monster) => monster.shape === categoryId);
+    if (entries.length && entries.every((entry) => state.mobIndex.has(entry.name)) && !state.rewardedMobCategories.has(categoryId)) {
+      rewards.push({ kind: "category", key: categoryId, reward: categoryReward(categoryId) });
+    }
+  });
+
+  return rewards;
+}
+
+function claimAllIndexRewards() {
+  const rewards = claimableIndexRewards();
+  if (!rewards.length) return;
+
+  const total = rewards.reduce((sum, entry) => ({
+    coins: sum.coins + entry.reward.coins,
+    gems: sum.gems + entry.reward.gems,
+    xp: sum.xp + entry.reward.xp,
+  }), { coins: 0, gems: 0, xp: 0 });
+
+  rewards.forEach((entry) => {
+    if (entry.kind === "category") state.rewardedMobCategories.add(entry.key);
+    else state.rewardedMobs.add(entry.key);
+  });
+  state.metaCoins += total.coins;
+  state.gems += total.gems;
+  addXp(total.xp);
+  sound.coins();
+  save();
+  renderHome();
+  renderMobIndex();
+  toast(`Claimed ${rewards.length} rewards: +${indexRewardLabel(total)}`, "reward");
 }
 
 function discoveryRewardMarkup(boss, name) {
@@ -1866,10 +2003,11 @@ function mobBaselineStats(baseMonster) {
   const stages = mobStageAppearances(baseMonster.name);
   const stage = encounter ? encounter.stage : 1;
   const m = encounter ? encounter.monster : baseMonster;
+  const ease = stageEase(stage);
   const stagePressure = 1 + Math.min(0.08, Math.max(0, (stage - 1) * 0.006));
   const stageCountScale = stage === 15 ? 0.92 : 1;
-  const hp = Math.round(baseMobHpForStage(stage) * stagePressure * m.hp * 0.78 * stageCountScale * GLOBAL_STAGE_DIFFICULTY.hp);
-  const speed = Math.round((37 + stage * 0.85) * 1.08 * (1 + (m.speed - 1) * 0.7) * GLOBAL_STAGE_DIFFICULTY.speed);
+  const hp = Math.round(baseMobHpForStage(stage) * stagePressure * m.hp * 0.78 * stageCountScale * GLOBAL_STAGE_DIFFICULTY.hp * ease.hp);
+  const speed = Math.round((37 + stage * 0.85) * 1.08 * (1 + (m.speed - 1) * 0.7) * GLOBAL_STAGE_DIFFICULTY.speed * ease.speed);
   const bounty = Math.max(1, Math.round((9 + Math.floor(stage * 1.5)) * m.reward));
   const damage = Math.max(1, Math.round(m.damage * 0.75));
   const speedLabel = m.speed < 0.8 ? "Slow" : m.speed <= 1.05 ? "Normal" : m.speed <= 1.35 ? "Fast" : "Very fast";
@@ -1879,10 +2017,11 @@ function mobBaselineStats(baseMonster) {
 function bossIndexStats(stageNumber) {
   const level = levelData[stageNumber - 1];
   const stage = level?.id || stageNumber;
+  const ease = stageEase(stage);
   const baseHp = baseMobHpForStage(stage);
   const waves = level?.waves || 1;
   const waveHpScale = waveHealthScale(stage, waves, waves);
-  const speed = (37 + stage * 0.85 + 16 + stage * 0.7) * 1.08 * GLOBAL_STAGE_DIFFICULTY.speed;
+  const speed = (37 + stage * 0.85 + 16 + stage * 0.7) * 1.08 * GLOBAL_STAGE_DIFFICULTY.speed * ease.speed;
   const stagePressure = 1 + Math.min(0.08, Math.max(0, (stage - 1) * 0.006));
   const stageBossScale = 4.2 + stage * 0.18;
   const hp = baseHp * waveHpScale * (7.5 + stage * 0.48) * stagePressure * stageBossScale * 1.8 * lateStageBossHpScale(stage) * earlyStagePressure(stage).bossHp * GLOBAL_STAGE_DIFFICULTY.hp;
@@ -1908,11 +2047,13 @@ function mobCardMarkup(monster, found) {
   }
   const portrait = mobPortraitDataUrl(`m:${monster.name}`, monster, null);
   const stats = mobBaselineStats(monster);
+  const resistances = mobResistanceLabels(monster);
   return `
       <article class="mob-card">
       <img class="mob-portrait" src="${portrait}" alt="${monster.name}">
       <b>${monster.name}</b>
       <div class="mob-stage-list"><small>Appears</small><span>${stageListLabel(stats.stages)}</span></div>
+      ${resistances.length ? `<small class="mob-resistances">Resists: ${resistances.join(" · ")}</small>` : ""}
       <div class="mob-stat-grid">
         <span class="mob-stat hp"><small>HP</small><b>${stats.hp}</b></span>
         <span class="mob-stat speed"><small>${stats.speedLabel}</small><b>${stats.speed}</b></span>
@@ -1938,11 +2079,13 @@ function bossCardMarkup(boss, stageNumber, found) {
   }
   const portrait = mobPortraitDataUrl(`b:${boss.name}`, null, boss);
   const stats = bossIndexStats(stageNumber);
+  const resistances = mobResistanceLabels(boss, true);
   return `
     <article class="mob-card boss">
       <img class="mob-portrait" src="${portrait}" alt="${boss.name}">
       <b>${boss.name}</b>
       <div class="mob-stage-chip">Stage ${stageNumber} Boss</div>
+      ${resistances.length ? `<small class="mob-resistances">Resists: ${resistances.join(" · ")}</small>` : ""}
       <div class="mob-stat-grid">
         <span class="mob-stat hp"><small>HP</small><b>${stats.hp}</b></span>
         <span class="mob-stat speed"><small>Speed</small><b>${stats.speed}</b></span>
@@ -1987,6 +2130,9 @@ function renderMobIndex() {
     "bosses"
   );
   els.mobIndexList.innerHTML = sections + bossSection;
+  const claimableCount = claimableIndexRewards().length;
+  els.claimAllMobRewards.textContent = `Claim All (${claimableCount})`;
+  els.claimAllMobRewards.disabled = claimableCount === 0;
 }
 
 function renderHome() {
@@ -2057,7 +2203,7 @@ function renderHome() {
         <div>
           <h3 style="color:${tower.color}">${tower.name}</h3>
           <div class="tower-meta">
-            <span class="chip">${tower.kind}</span>
+            ${TOWER_ATTACK_TYPES[tower.id] ? `<span class="chip">${TOWER_ATTACK_TYPES[tower.id]}</span>` : ""}
             <span class="chip">${tower.cost} coins</span>
             <span class="chip">Level ${tower.unlockLevel}</span>
             <span class="chip">${tower.gems} gems</span>
@@ -2328,7 +2474,7 @@ function setupMultiplayer() {
     clearMultiplayerRoomAfterGame(result);
   });
 
-  multiplayer.socket.on("room:reconnected", ({ oldPlayerId, newPlayerId, room, game, reconnectToken }) => {
+  multiplayer.socket.on("room:reconnected", ({ oldPlayerId, newPlayerId, room, game, coins, discoveries, reconnectToken }) => {
     migrateMultiplayerPlayerId(oldPlayerId, newPlayerId);
     multiplayer.room = room;
     multiplayer.playerId = newPlayerId;
@@ -2336,8 +2482,10 @@ function setupMultiplayer() {
     multiplayer.lastRoomCode = room?.code || multiplayer.lastRoomCode;
     multiplayer.simOwnerId = game?.simOwnerId || multiplayer.simOwnerId || room?.hostId;
     multiplayer.active = Boolean(game);
+    if (Number.isFinite(coins)) state.coins = coins;
     if (game?.towers) syncPlacedTowersFromGame(game.towers);
     if (game?.lastSnapshot && !isSimulationOwner()) applyMobSnapshot(game.lastSnapshot);
+    if (Array.isArray(discoveries)) discoveries.forEach(recordMobDiscovery);
     toast("Reconnected to multiplayer");
     renderRoomInfo();
     updateHud();
@@ -2433,6 +2581,7 @@ function setupMultiplayer() {
 
   function applyMobSnapshot(snapshot) {
     if (!isMultiplayerGame() || isSimulationOwner()) return;
+    if ((state.pendingWaveStart || state.awaitingRemoteWave) && snapshot.wave < state.wave) return;
     const remoteMobs = snapshot.mobs || [];
     const remoteSpawns = snapshot.spawns || [];
 
@@ -2442,12 +2591,19 @@ function setupMultiplayer() {
     state.pendingWaveStart = false;
     state.awaitingRemoteWave = false;
     state.runningWave = snapshot.runningWave;
-    mergeRemoteMobs(remoteMobs);
+    mergeRemoteMobs(remoteMobs, snapshot.simTime);
     state.spawns = remoteSpawns.map((spawn) => ({ ...spawn }));
-    mergeRemoteSoldiers(snapshot.soldiers || []);
-    state.shots = (snapshot.shots || []).slice(-MAX_ACTIVE_SHOTS).map((shot) => ({ ...shot, simple: true }));
+    mergeRemoteSoldiers(snapshot.soldiers || [], snapshot.simTime);
+    mergeRemoteShots(snapshot.shots || []);
+    if (Array.isArray(snapshot.towerStates)) {
+      const cooldowns = new Map(snapshot.towerStates.map((tower) => [tower.uid, tower.cooldown]));
+      state.placed.forEach((tower) => {
+        if (Number.isFinite(cooldowns.get(tower.uid))) tower.cooldown = cooldowns.get(tower.uid);
+      });
+    }
     state.kills = snapshot.kills;
-    updateHud();
+    if (Number.isFinite(snapshot.earnedXp)) state.earnedXp = snapshot.earnedXp;
+    if (Number.isFinite(snapshot.earnedGems)) state.earnedGems = snapshot.earnedGems;
   }
   multiplayer.socket.on("mobs:sync", applyMobSnapshot);
 
@@ -2472,17 +2628,29 @@ function setupMultiplayer() {
     const reward = Math.max(0, Math.floor(Number(amount) || 0));
     if (!reward) return;
     state.coins += reward;
+    if (kind === "income") sound.coins();
     if (kind === "waveBonus") announceWaveBonus(reward);
     updateHud();
   });
 
-  multiplayer.socket.on("room:notice", ({ message }) => {
-    toast(message);
+  multiplayer.socket.on("mob:discovered", (mob) => {
+    recordMobDiscovery(mob);
+  });
+
+  multiplayer.socket.on("room:notice", ({ message, kind }) => {
+    toast(message, kind);
   });
 
   multiplayer.socket.on("sim:changed", ({ simOwnerId }) => {
     multiplayer.simOwnerId = simOwnerId;
     if (simOwnerId === multiplayer.socket.id) {
+      state.mobs.forEach((mob) => {
+        if (Number.isFinite(mob.targetX) && Number.isFinite(mob.targetY)) {
+          mob.x = mob.targetX;
+          mob.y = mob.targetY;
+        }
+        if (Number.isFinite(mob.targetProgress)) mob.progress = mob.targetProgress;
+      });
       state.pendingWaveStart = false;
       state.awaitingRemoteWave = false;
       if (state.mobs.length || state.spawns.length) state.runningWave = true;
@@ -2530,6 +2698,10 @@ function migrateMultiplayerPlayerId(oldPlayerId, newPlayerId) {
   state.placed.forEach((tower) => {
     if (tower.ownerId === oldPlayerId) tower.ownerId = newPlayerId;
   });
+  state.mobs.forEach((mob) => {
+    if (mob.dotOwnerId === oldPlayerId) mob.dotOwnerId = newPlayerId;
+    if (mob.killOwnerId === oldPlayerId) mob.killOwnerId = newPlayerId;
+  });
 }
 
 function createMultiplayerRoom() {
@@ -2547,6 +2719,7 @@ function createMultiplayerRoom() {
     stageId: state.currentLevel?.id || 1,
     loadout: activeLoadout(),
     highestStage: highestUnlockedStage(),
+    towerLevels: state.towerLevels,
   });
 }
 
@@ -2582,11 +2755,12 @@ function leaveMultiplayerRoom() {
   multiplayer.active = false;
   multiplayer.choosingMap = false;
   clearTimeout(multiplayer.waveStartTimer);
-  closeModal(els.multiplayerModal);
   closeModal(els.levelModal);
   closeModal(els.modeModal);
   switchScreen("home");
   renderHome();
+  renderRoomInfo();
+  openModal(els.multiplayerModal);
 }
 
 function endMultiplayerRoom(result) {
@@ -2880,6 +3054,7 @@ function startLevel(id, options = {}) {
   state.placed = [];
   state.soldiers = [];
   state.shots = [];
+  state.seenRemoteShots.clear();
   state.spawns = [];
   state.startedWaves = new Set();
   state.kills = 0;
@@ -3194,54 +3369,7 @@ function levelUpTower(id) {
 }
 
 function towerStatsAtLevel(tower, level) {
-  const boost = level - 1;
-  const metaBoost = towerMetaLevel(tower.id) - 1;
-  const meta = 1 + metaBoost * 0.05;
-  const metaRange = 1 + metaBoost * 0.012;
-  const metaReload = 1 + metaBoost * 0.018;
-  const metaSupportBoost = metaBoost * 0.005;
-  const slowingTower = tower.kind === "slow" || tower.kind === "control";
-  const slowStep = tower.id === "ice" ? 0.055 : tower.id === "void" ? 0.05 : 0.035;
-  const slowCap = tower.id === "ice" ? 0.28 : tower.id === "void" ? 0.25 : 0.22;
-  // Slow stores remaining movement speed; lower values mean stronger control.
-  const metaSlowBoost = slowingTower ? metaBoost * 0.005 : 0;
-  const blastGrowth = (1 + boost * 0.07) * (slowingTower ? 1 + metaBoost * 0.02 : 1);
-  return {
-    damage: tower.kind === "support" ? 0 : tower.damage * (1 + boost * 0.36) * meta,
-    range: tower.range ? tower.range * (1 + boost * 0.08) * metaRange : 0,
-    reload: tower.id === "orbital" || tower.kind === "support"
-      ? 0
-      : tower.kind === "summon"
-        ? Math.ceil((16 - level) / metaReload)
-        : tower.fire * (tower.id === "tesla" ? 1.18 : 1) / (1 + level * 0.16) / metaReload + (tower.id === "bank" ? 2 : 0),
-    splash: tower.splash ? tower.splash * blastGrowth : 0,
-    // Apply the permanent bonus after the original battle-upgrade curve/cap.
-    slow: tower.slow ? Math.max(slowCap, tower.slow - boost * slowStep) - metaSlowBoost : 0,
-    poison: tower.poison ? tower.poison * (1 + boost * 0.25) * meta : 0,
-    burn: tower.burn ? tower.burn * (1 + boost * 0.25) * meta : 0,
-    pierceHits: tower.kind === "pierce" ? 2 + Math.floor(level / 2) : 0,
-    chainTargets: tower.kind === "chain" ? chainTargetsAtLevel(tower, level) : 0,
-    income: tower.kind === "income" ? Math.round((26 + level * 13) * meta) : 0,
-    soldierHp: tower.kind === "summon" ? soldierHpAtLevel(tower, level) * meta : 0,
-    soldierDamage: tower.kind === "summon" ? tower.damage * 0.84 * (1 + boost * 0.22) * meta : 0,
-    soldierSpeed: tower.kind === "summon" ? tower.soldierSpeed : 0,
-    soldierRange: tower.kind === "summon" && level >= 3 ? 90 + boost * 15 : 0,
-    soldierReload: tower.kind === "summon" && level >= 3 ? Math.max(0.85, 1.35 - boost * 0.1) : 0,
-    fireRateBoost: tower.aura?.fireRate ? tower.aura.fireRate + boost * (tower.aura.fireRateStep || 0.04) + metaSupportBoost : 0,
-    damageBoost: tower.aura?.damage ? tower.aura.damage + boost * (tower.aura.damageStep || 0.04) + metaSupportBoost : 0,
-    beamDamage: tower.id === "orbital" ? tower.damage * (1 + boost * 0.36) * meta : 0,
-  };
-}
-
-function chainTargetsAtLevel(tower, level) {
-  if (tower.id === "spark") return Math.min(2, 1 + Math.floor(level / 4));
-  if (tower.id === "tesla") return [0, 2, 2, 3, 3, 4][level] || 4;
-  return Math.min(4, level);
-}
-
-function soldierHpAtLevel(tower, level) {
-  if (level < 3) return tower.soldierHp * (1.18 + (level - 1) * 0.16);
-  return tower.soldierHp * (1.08 + (level - 3) * 0.035);
+  return IroncladSimulationRules.towerStatsAtLevel(tower, level, towerMetaLevel(tower.id));
 }
 
 function formatStat(value) {
@@ -3304,6 +3432,8 @@ function towerEffectMarkup(tower, stats) {
     effects.push(["Targeting", "Lock-on"]);
     effects.push(["Role", "Elite focus fire"]);
   }
+  const placementLimit = TOWER_PLACEMENT_LIMITS[tower.id];
+  if (placementLimit) effects.push(["Place Limit", `${placementLimit} per match`]);
   return effects.map(([label, value]) => `<span>${label} <b>${value}</b></span>`).join("");
 }
 
@@ -3312,84 +3442,32 @@ function multiplayerPlayerCount() {
   return Math.max(1, Math.min(4, multiplayer.room?.players?.length || 1));
 }
 
-function multiplayerFinalDifficultyScale(playerCount) {
-  return {
-    2: 1.7,
-    3: 2.4,
-    4: 3.2,
-  }[playerCount] || 1;
-}
-
 function multiplayerWaveDifficulty(wave, totalWaves) {
-  const playerCount = multiplayerPlayerCount();
-  const targetScale = multiplayerFinalDifficultyScale(playerCount);
-  if (targetScale <= 1) return { total: 1, count: 1, hp: 1, speed: 1, bossHp: 1, bossSpeed: 1 };
-
-  const waveProgress = (wave - 1) / Math.max(1, totalWaves - 1);
-  const ramp = Math.pow(Math.max(0, (waveProgress - 0.2) / 0.8), 1.35);
-  const total = 1 + (targetScale - 1) * ramp;
-  const count = Math.sqrt(total);
-
-  return {
-    total,
-    count,
-    hp: total / count,
-    speed: 1 + (total - 1) * 0.04,
-    bossHp: total,
-    bossSpeed: 1 + (total - 1) * 0.03,
-  };
+  return IroncladSimulationRules.multiplayerWaveDifficulty(wave, totalWaves, multiplayerPlayerCount());
 }
 
 function midGamePressure(wave, totalWaves) {
-  const start = Math.max(4, Math.round(totalWaves * 0.32));
-  const end = Math.max(start + 2, Math.round(totalWaves * 0.72));
-  if (wave < start || wave > end) return { count: 1, hp: 1, speed: 1 };
-
-  const middle = (start + end) / 2;
-  const halfRange = Math.max(1, (end - start) / 2);
-  const centerStrength = 1 - Math.min(1, Math.abs(wave - middle) / halfRange);
-  const pressure = 0.45 + centerStrength * 0.55;
-  return {
-    count: 1 + pressure * 0.14,
-    hp: 1 + pressure * 0.18,
-    speed: 1 + pressure * 0.045,
-  };
+  return IroncladSimulationRules.midGamePressure(wave, totalWaves);
 }
 
 function lateStageBossHpScale(stage) {
-  if (stage < 10) return 1;
-  return {
-    10: 0.82,
-    11: 0.76,
-    12: 0.7,
-    13: 0.67,
-    14: 0.65,
-    15: 0.65,
-  }[stage] || 0.65;
+  return IroncladSimulationRules.lateStageBossHpScale(stage);
 }
 
 function earlyStagePressure(stage) {
-  if (stage >= 1 && stage <= 3) return { count: 1.4, spacing: 0.7, bossHp: 1.55 };
-  if (stage === 4) return { count: 1.15, spacing: 0.8, bossHp: 1.25 };
-  if (stage === 5) return { count: 1.1, spacing: 0.88, bossHp: 1.16 };
-  return { count: 1, spacing: 1, bossHp: 1 };
+  return IroncladSimulationRules.earlyStagePressure(stage);
+}
+
+function stageEase(stage) {
+  return IroncladSimulationRules.stageEase(stage);
 }
 
 function baseMobHpForStage(stage) {
-  // A modest early-game bump without changing later stages or wave growth.
-  const earlyStageScale = stage >= 1 && stage <= 4 ? 1.12 : 1;
-  return (14 + stage * 5) * earlyStageScale;
+  return IroncladSimulationRules.baseMobHpForStage(stage);
 }
 
 function waveHealthScale(stage, wave, totalWaves, tier = null) {
-  const progress = (wave - 1) / Math.max(1, totalWaves - 1);
-  const ramp = Math.pow(progress, 1.65);
-  const stageGrowth = 1 + ramp * (2.25 + stage * 0.12);
-  const tierGrowth = tier === null ? 1 : 1 + ramp * (0.28 + tier * 0.04) / 0.78;
-  const previousScale = stageGrowth * midGamePressure(wave, totalWaves).hp * tierGrowth;
-  // Preserve wave-one HP; reduce the combined additional HP by exactly 20%.
-  // Apply this once after combining growth factors, not once per multiplier.
-  return 1 + (previousScale - 1) * WAVE_HEALTH_GROWTH_FACTOR;
+  return IroncladSimulationRules.waveHealthScale(stage, wave, totalWaves, tier);
 }
 
 function beginWave() {
@@ -3416,6 +3494,7 @@ function scheduleMultiplayerWaveStart(wave, startsAt) {
 
   const delay = Math.max(0, Number(startsAt) - Date.now());
   multiplayer.waveStartTimer = setTimeout(() => {
+    if (state.runningWave && state.wave === wave) return;
     state.pendingWaveStart = false;
     if (isSimulationOwner()) {
       beginLocalWave(wave);
@@ -3439,69 +3518,9 @@ function beginLocalWave(nextWave = state.wave + 1) {
   state.startedWaves.add(nextWave);
   state.wave = nextWave;
   state.runningWave = true;
-  const waveProgress = (state.wave - 1) / Math.max(1, state.currentLevel.waves - 1);
-  const waveRamp = Math.pow(waveProgress, 1.65);
-  const coopScale = multiplayerWaveDifficulty(state.wave, state.currentLevel.waves);
-  const midPressure = midGamePressure(state.wave, state.currentLevel.waves);
-  const stage = state.currentLevel.id;
-  const earlyPressure = earlyStagePressure(stage);
-  const startCount = stage >= 10 ? 10 : 5;
-  const finalExtra = 36 + stage * 2 + Math.floor(state.currentLevel.waves / 5) * 5;
-  let count = startCount + Math.round((finalExtra * waveRamp) / 5) * 5;
-  count = Math.ceil((count * coopScale.count * midPressure.count) / 5) * 5;
-  if (state.wave === 1 && stage >= 10) count = Math.max(6, Math.floor(count * 0.6));
-  count = Math.ceil(count * earlyPressure.count);
-  const baseHp = baseMobHpForStage(stage);
-  const waveHpScale = waveHealthScale(stage, state.wave, state.currentLevel.waves);
-  const speed = (37 + stage * 0.85 + waveRamp * (16 + stage * 0.7)) * midPressure.speed * 1.08 * GLOBAL_STAGE_DIFFICULTY.speed;
-  const spacing = Math.min(1.5, 1 + waveRamp * 0.3 + Math.max(0, stage - 1) * 0.012) * earlyPressure.spacing * GLOBAL_STAGE_DIFFICULTY.spacing;
-  const stagePressure = 1 + Math.min(0.08, Math.max(0, (stage - 1) * 0.006));
-  const hp = baseHp * stagePressure * coopScale.hp * GLOBAL_STAGE_DIFFICULTY.hp;
-  const stageCountScale = stage === 15 ? 0.92 : 1;
-  const stageBossScale = 4.2 + stage * 0.18;
-  const bossHpScale = lateStageBossHpScale(stage) * earlyPressure.bossHp;
-  const pathCount = state.currentLevel.paths.length;
-  const pathSpawnCounts = Array(pathCount).fill(0);
-  let lastSpawnTime = 0;
-  for (let i = 0; i < count; i += 1) {
-    const pathIndex = pathCount > 1 ? i % pathCount : 0;
-    const spawnTime = pathSpawnCounts[pathIndex] * spacing;
-    pathSpawnCounts[pathIndex] += 1;
-    lastSpawnTime = Math.max(lastSpawnTime, spawnTime);
-    const monster = monsterForSpawn(i);
-    const heavy = monster.shape === "brute" || monster.shape === "armored";
-    const tier = monster.tier || 0;
-    const monsterHpScale = monster.hp * 0.78;
-    const monsterWaveHpScale = waveHealthScale(stage, state.wave, state.currentLevel.waves, tier);
-    const monsterSpeedScale = 1 + (monster.speed - 1) * (0.7 + waveRamp * 0.25);
-    const monsterBaseDamage = Math.max(1, Math.round(monster.damage * (0.75 + waveRamp * 0.55)));
-    state.spawns.push({
-      t: spawnTime,
-      pathIndex,
-      hp: hp * monsterWaveHpScale * monsterHpScale * stageCountScale,
-      speed: speed * coopScale.speed * monsterSpeedScale,
-      reward: Math.round((9 + Math.floor(stage * 1.5)) * monster.reward * (1 + waveRamp * 0.4)),
-      baseDamage: monsterBaseDamage,
-      boss: false,
-      heavy,
-      monster,
-    });
-  }
+  state.spawns.push(...IroncladSimulationRules.createWaveSpawns(state.currentLevel, state.wave, multiplayerPlayerCount(), monsterForSpawn));
   if (state.wave === state.currentLevel.waves) {
     const boss = state.currentLevel.boss;
-    state.spawns.push({
-      t: lastSpawnTime + 10,
-      pathIndex: longestPathIndex(state.currentLevel.paths),
-      hp: baseHp * waveHpScale * (7.5 + stage * 0.48) * stagePressure * stageBossScale * coopScale.bossHp * 1.8 * bossHpScale * GLOBAL_STAGE_DIFFICULTY.hp,
-      speed: speed * 0.56 * coopScale.bossSpeed,
-      reward: (10 + Math.floor(stage * 1.5)) * 15,
-      baseDamage: 5 + Math.floor(stage / 5),
-      boss: true,
-      heavy: false,
-      bossName: boss.name,
-      bossColor: boss.color,
-      monster: null,
-    });
     const bossLane = longestPathIndex(state.currentLevel.paths);
     const bossMessage = state.currentLevel.paths.length > 1
       ? `${boss.name} is coming - Lane ${bossLane + 1}`
@@ -3518,24 +3537,7 @@ function broadcastRoomNotice(message) {
 }
 
 function monsterForSpawn(index) {
-  const monsters = state.currentLevel.monsters || [];
-  const waveRatio = (state.wave - 1) / Math.max(1, state.currentLevel.waves - 1);
-  if (!monsters.length) {
-    return { name: "Creep", color: "#303942", edge: "#aeb8bf", eye: "#ff5b55", hp: 1, speed: 1, damage: 1, reward: 1, shape: "normal" };
-  }
-
-  const activeCount = Math.min(monsters.length, 2 + Math.floor(waveRatio * 6));
-  const activeMonsters = monsters.slice(0, activeCount);
-  const advancedChance = Math.min(0.84, 0.08 + waveRatio * 0.68);
-  const eliteChance = Math.min(0.34, Math.max(0, (waveRatio - 0.5) * 0.62));
-  const roll = terrainRand(index + state.wave * 41 + state.currentLevel.id * 97, 1201);
-
-  if (roll < eliteChance) {
-    const elitePool = activeMonsters.slice(Math.max(0, activeMonsters.length - 3));
-    return elitePool[index % elitePool.length];
-  }
-  if (roll < advancedChance) return activeMonsters[(index + state.wave) % activeMonsters.length];
-  return activeMonsters[index % Math.min(2, activeMonsters.length)];
+  return IroncladSimulationRules.monsterForSpawn(state.currentLevel, state.wave, index);
 }
 
 function spawnMob(spawn) {
@@ -3567,6 +3569,7 @@ function spawnMob(spawn) {
     monsterEdge: monster?.edge,
     monsterEye: monster?.eye,
     monsterShape: monster?.shape || "normal",
+    resistances: mobResistances(monster || { name: spawn.bossName }, spawn.boss),
     bossName: spawn.bossName,
     bossColor: spawn.bossColor,
   });
@@ -3581,7 +3584,9 @@ function update(dt) {
   if (!state.currentLevel) return;
   if (multiplayer.active && !multiplayer.socket?.connected) return;
   if (isMultiplayerGame() && !isSimulationOwner()) {
+    updateVolcanoFx(dt);
     updateRemoteEntities(dt);
+    updateHudThrottled(dt);
     return;
   }
 
@@ -3598,7 +3603,7 @@ function update(dt) {
     mob.prevProgress = mobPathProgress(mob);
     if (mob.dot > 0) {
       const dealt = Math.min(mob.dot * dt, mob.hp);
-      mob.hp -= dealt;
+      damageMob(mob, dealt, mob.dotOwnerId);
       mob.dot = Math.max(0, mob.dot - 14 * dt);
     }
     mob.slowTimer -= dt;
@@ -3648,13 +3653,22 @@ function update(dt) {
 
   const dead = state.mobs.filter((mob) => mob.hp <= 0);
   if (dead.length) {
-    const killReward = dead.reduce((sum, mob) => sum + mob.reward, 0);
     state.kills += dead.length;
     dead.forEach(recordMobDiscovery);
-    if (!isMultiplayerGame() || isSimulationOwner()) state.coins += killReward;
-    broadcastCoinReward(killReward);
+    if (isMultiplayerGame()) {
+      const rewards = new Map();
+      dead.forEach((mob) => {
+        if (mob.killOwnerId) rewards.set(mob.killOwnerId, (rewards.get(mob.killOwnerId) || 0) + mob.reward);
+      });
+      rewards.forEach((amount, ownerId) => {
+        if (ownerId === multiplayer.socket.id) state.coins += amount;
+        else multiplayer.socket.emit("coins:killReward", { ownerId, amount });
+      });
+    } else {
+      state.coins += dead.reduce((sum, mob) => sum + mob.reward, 0);
+    }
     if (!isMultiplayerGame() || isSimulationOwner()) {
-      state.earnedXp += dead.reduce((sum, mob) => sum + mob.baseDamage * 2, 0);
+      state.earnedXp += dead.reduce((sum, mob) => sum + mob.baseDamage * 2, 0) / 3;
     }
     state.mobs = state.mobs.filter((mob) => mob.hp > 0);
   }
@@ -3670,7 +3684,7 @@ function update(dt) {
     if (!isMultiplayerGame() || isSimulationOwner()) {
       announceWaveBonus(waveBonus);
       state.earnedGems += Math.max(1, Math.floor(state.currentLevel.rewardGems / state.currentLevel.waves));
-      state.earnedXp += Math.max(8, Math.floor(state.currentLevel.rewardXp / state.currentLevel.waves));
+      state.earnedXp += Math.max(1, Math.floor(state.currentLevel.rewardXp / state.currentLevel.waves));
     }
     if (state.wave >= state.currentLevel.waves) winLevel();
   }
@@ -3690,39 +3704,69 @@ function broadcastCoinReward(amount, kind = "kill") {
   multiplayer.socket.emit("coins:reward", { amount, kind });
 }
 
-function mergeRemoteMobs(remoteMobs) {
+function mergeRemoteMobs(remoteMobs, simTime) {
   const existingById = new Map(state.mobs.map((mob) => [mob.uid, mob]));
+  const receivedAt = performance.now();
   const numericIds = remoteMobs.map((mob) => Number(mob.uid)).filter((uid) => Number.isFinite(uid));
   if (numericIds.length) state.nextMobId = Math.max(state.nextMobId, Math.max(...numericIds) + 1);
   state.mobs = remoteMobs.map((remote, index) => {
     const uid = remote.uid ?? `remote-${index}`;
     const existing = existingById.get(uid);
+    const path = state.currentLevel?.paths?.[remote.pathIndex];
+    const targetProgress = path && Number.isInteger(remote.waypoint)
+      ? IroncladSimulationRules.calculateMobPathProgress(remote, path)
+      : null;
+    const elapsed = existing && Number.isFinite(simTime) && Number.isFinite(existing.simTime)
+      ? (simTime - existing.simTime) / 1000
+      : existing ? (receivedAt - existing.receivedAt) / 1000 : 0;
+    const speed = Number.isFinite(remote.speed) ? Math.max(0, remote.speed) : 0;
+    const pathVelocity = existing && Number.isFinite(targetProgress) && Number.isFinite(existing.targetProgress) && elapsed > 0 && elapsed < 1
+      ? Math.max(0, Math.min(speed * 1.5, (targetProgress - existing.targetProgress) / elapsed))
+      : 0;
     if (!existing) {
       return {
         ...remote,
         uid,
         targetX: remote.x,
         targetY: remote.y,
+        targetProgress,
+        displayProgress: targetProgress,
+        pathVelocity,
+        receivedAt,
+        simTime,
       };
     }
 
+    const resync = Number.isFinite(targetProgress) && (
+      existing.pathIndex !== remote.pathIndex ||
+      elapsed > 0.5 ||
+      !Number.isFinite(existing.displayProgress) ||
+      Math.abs(existing.displayProgress - targetProgress) > 80
+    );
     return {
       ...existing,
       ...remote,
       uid,
-      x: existing.x,
-      y: existing.y,
+      x: resync ? remote.x : existing.x,
+      y: resync ? remote.y : existing.y,
       targetX: remote.x,
       targetY: remote.y,
+      ...remoteVelocity(existing, remote, receivedAt, simTime),
+      targetProgress,
+      displayProgress: resync ? targetProgress : existing.displayProgress,
+      pathVelocity,
+      receivedAt,
+      simTime,
     };
   });
 }
 
-function mergeRemoteSoldiers(remoteSoldiers) {
+function mergeRemoteSoldiers(remoteSoldiers, simTime) {
+  const receivedAt = performance.now();
   state.soldiers = remoteSoldiers.map((remote, index) => {
     const owner = state.placed.find((tower) => tower.uid === remote.ownerUid) || null;
     const existing = state.soldiers[index];
-    if (!existing) return { ...remote, owner, targetX: remote.x, targetY: remote.y };
+    if (!existing) return { ...remote, owner, targetX: remote.x, targetY: remote.y, receivedAt, simTime };
     return {
       ...existing,
       ...remote,
@@ -3731,21 +3775,68 @@ function mergeRemoteSoldiers(remoteSoldiers) {
       y: existing.y,
       targetX: remote.x,
       targetY: remote.y,
+      ...remoteVelocity(existing, remote, receivedAt, simTime),
+      receivedAt,
+      simTime,
     };
   });
 }
 
-function updateRemoteEntities(dt) {
-  const snap = Math.min(1, dt * 14);
-  state.mobs.forEach((mob) => {
-    if (typeof mob.targetX !== "number" || typeof mob.targetY !== "number") return;
-    mob.x += (mob.targetX - mob.x) * snap;
-    mob.y += (mob.targetY - mob.y) * snap;
+function remoteVelocity(existing, remote, receivedAt, simTime) {
+  const elapsed = (Number.isFinite(simTime) && Number.isFinite(existing.simTime)
+    ? simTime - existing.simTime
+    : receivedAt - existing.receivedAt) / 1000;
+  if (!(elapsed > 0 && elapsed < 1)) return { velocityX: 0, velocityY: 0 };
+  const dx = remote.x - existing.targetX;
+  const dy = remote.y - existing.targetY;
+  const speed = Math.hypot(dx, dy) / elapsed;
+  const scale = speed > 1000 ? 1000 / speed : 1;
+  return { velocityX: dx / elapsed * scale, velocityY: dy / elapsed * scale };
+}
+
+function mergeRemoteShots(remoteShots) {
+  const existingById = new Map(state.shots.filter((shot) => shot.networkId).map((shot) => [shot.networkId, shot]));
+  const incoming = remoteShots.slice(-MAX_ACTIVE_SHOTS).map((shot) => {
+    const existing = existingById.get(shot.networkId);
+    if (shot.networkId && !state.seenRemoteShots.has(shot.networkId)) {
+      state.seenRemoteShots.add(shot.networkId);
+      if (shot.style !== "coinPulse") sound.attack(shot.style);
+      if (state.seenRemoteShots.size > 1000) state.seenRemoteShots.delete(state.seenRemoteShots.values().next().value);
+    }
+    existingById.delete(shot.networkId);
+    return { ...shot, life: existing ? Math.min(existing.life, shot.life) : shot.life, simple: true };
   });
-  state.soldiers.forEach((soldier) => {
-    if (typeof soldier.targetX !== "number" || typeof soldier.targetY !== "number") return;
-    soldier.x += (soldier.targetX - soldier.x) * snap;
-    soldier.y += (soldier.targetY - soldier.y) * snap;
+  state.shots = [...existingById.values(), ...incoming].slice(-MAX_ACTIVE_SHOTS);
+}
+
+function updateRemoteEntities(dt) {
+  const snap = 1 - Math.exp(-dt * 30);
+  const now = performance.now();
+  state.placed.forEach((tower) => { if (Number.isFinite(tower.cooldown)) tower.cooldown -= dt; });
+  for (const mob of state.mobs) {
+    const path = state.currentLevel?.paths?.[mob.pathIndex];
+    if (path && Number.isFinite(mob.targetProgress) && Number.isFinite(mob.displayProgress)) {
+      IroncladSimulationRules.updateRemoteMobPosition(mob, path, dt, now);
+      continue;
+    }
+    if (Number.isFinite(mob.targetX) && Number.isFinite(mob.targetY)) {
+      mob.x += (mob.targetX - mob.x) * snap;
+      mob.y += (mob.targetY - mob.y) * snap;
+    }
+  }
+  for (const entity of state.soldiers) {
+    if (typeof entity.targetX !== "number" || typeof entity.targetY !== "number") continue;
+    const elapsed = Number.isFinite(entity.receivedAt)
+      ? Math.min(0.12, Math.max(0, (now - entity.receivedAt) / 1000))
+      : 0;
+    const x = entity.targetX + (entity.velocityX || 0) * elapsed;
+    const y = entity.targetY + (entity.velocityY || 0) * elapsed;
+    entity.x += (x - entity.x) * snap;
+    entity.y += (y - entity.y) * snap;
+  }
+  state.shots = state.shots.filter((shot) => {
+    shot.life -= dt;
+    return shot.life > 0;
   });
 }
 
@@ -3753,9 +3844,10 @@ function syncMobsToRoom(dt) {
   if (!isMultiplayerGame() || !isSimulationOwner()) return;
   state.mobSyncTimer -= dt;
   if (state.mobSyncTimer > 0) return;
-  state.mobSyncTimer = 0.08;
+  state.mobSyncTimer = Math.max(0, state.mobSyncTimer + MULTIPLAYER_SYNC_INTERVAL);
 
   multiplayer.socket.emit("mobs:sync", {
+    simTime: performance.now(),
     baseHp: state.baseHp,
     wave: state.wave,
     runningWave: state.runningWave,
@@ -3774,6 +3866,8 @@ function syncMobsToRoom(dt) {
       slowTimer: mob.slowTimer,
       slowFactor: mob.slowFactor,
       dot: mob.dot,
+      dotOwnerId: mob.dotOwnerId,
+      killOwnerId: mob.killOwnerId,
       poisonTimer: mob.poisonTimer,
       burnTimer: mob.burnTimer,
       shockTimer: mob.shockTimer,
@@ -3786,6 +3880,7 @@ function syncMobsToRoom(dt) {
       monsterEdge: mob.monsterEdge,
       monsterEye: mob.monsterEye,
       monsterShape: mob.monsterShape,
+      resistances: mob.resistances,
       bossName: mob.bossName,
       bossColor: mob.bossColor,
     })),
@@ -3806,6 +3901,7 @@ function syncMobsToRoom(dt) {
       color: soldier.color,
     })),
     shots: state.shots.map((shot) => ({
+      networkId: shot.networkId || (shot.networkId = `${networkShotPrefix}-${nextNetworkShotId++}`),
       x: shot.x,
       y: shot.y,
       tx: shot.tx,
@@ -3822,34 +3918,11 @@ function syncMobsToRoom(dt) {
 }
 
 function moveMob(mob, distance) {
-  const path = state.currentLevel.paths[mob.pathIndex];
-  while (distance > 0 && mob.waypoint < path.length) {
-    const target = path[mob.waypoint];
-    const dx = target[0] - mob.x;
-    const dy = target[1] - mob.y;
-    const len = Math.hypot(dx, dy);
-    if (len <= distance) {
-      mob.x = target[0];
-      mob.y = target[1];
-      mob.waypoint += 1;
-      distance -= len;
-    } else {
-      mob.x += (dx / len) * distance;
-      mob.y += (dy / len) * distance;
-      distance = 0;
-    }
-  }
-  if (mob.waypoint >= path.length) mob.escaped = true;
+  IroncladSimulationRules.moveMob(mob, state.currentLevel.paths[mob.pathIndex], distance);
 }
 
 function pathLength(path) {
-  if (Number.isFinite(path.cachedLength)) return path.cachedLength;
-  let total = 0;
-  for (let i = 1; i < path.length; i += 1) {
-    total += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]);
-  }
-  path.cachedLength = total;
-  return total;
+  return IroncladSimulationRules.pathLength(path);
 }
 
 function longestPathIndex(paths) {
@@ -3866,22 +3939,7 @@ function longestPathIndex(paths) {
 }
 
 function pointOnPath(path, progress) {
-  let remaining = Math.max(0, Math.min(pathLength(path), progress));
-  for (let i = 1; i < path.length; i += 1) {
-    const from = path[i - 1];
-    const to = path[i];
-    const segment = Math.hypot(to[0] - from[0], to[1] - from[1]);
-    if (remaining <= segment) {
-      const ratio = segment ? remaining / segment : 0;
-      return {
-        x: from[0] + (to[0] - from[0]) * ratio,
-        y: from[1] + (to[1] - from[1]) * ratio,
-      };
-    }
-    remaining -= segment;
-  }
-  const last = path[path.length - 1];
-  return { x: last[0], y: last[1] };
+  return IroncladSimulationRules.pointOnPath(path, progress);
 }
 
 function moveSoldierAlongPath(soldier, progressDelta) {
@@ -3893,37 +3951,11 @@ function moveSoldierAlongPath(soldier, progressDelta) {
 }
 
 function supportBonusesForTower(tower) {
-  if (tower.kind === "support" || tower.kind === "income") {
-    return { fireRate: 1, damage: 1 };
-  }
-
-  let fireRate = 1;
-  let damage = 1;
-  for (const support of state.placed) {
-    if (support.kind !== "support" || support === tower) continue;
-    const supportStats = towerStatsAtLevel(support, support.level);
-    if (!supportStats.range) continue;
-    if (Math.hypot(support.x - tower.x, support.y - tower.y) > supportStats.range) continue;
-    fireRate += supportStats.fireRateBoost || 0;
-    damage += supportStats.damageBoost || 0;
-  }
-  return { fireRate, damage };
+  return IroncladSimulationRules.supportBonusesForTower(tower, state.placed, (support) => towerMetaLevel(support.id));
 }
 
 function combatStatsForTower(tower) {
-  const stats = towerStatsAtLevel(tower, tower.level);
-  if (tower.kind === "support") return stats;
-  const bonuses = supportBonusesForTower(tower);
-  return {
-    ...stats,
-    damage: stats.damage * bonuses.damage,
-    poison: stats.poison ? stats.poison * bonuses.damage : 0,
-    burn: stats.burn ? stats.burn * bonuses.damage : 0,
-    reload: tower.id === "orbital" ? 0 : tower.kind === "summon" ? stats.reload : stats.reload / Math.max(0.1, bonuses.fireRate),
-    beamDamage: tower.id === "orbital" ? stats.beamDamage * bonuses.damage * bonuses.fireRate : 0,
-    soldierDamage: stats.soldierDamage ? stats.soldierDamage * bonuses.damage : 0,
-    soldierReload: stats.soldierReload ? stats.soldierReload / Math.max(0.1, bonuses.fireRate) : 0,
-  };
+  return IroncladSimulationRules.combatStatsForTower(tower, state.placed, (placed) => towerMetaLevel(placed.id));
 }
 
 function towerShotOrigin(tower) {
@@ -3986,7 +4018,7 @@ function updateTower(tower, dt) {
     const target = findFirstTarget(tower, stats);
     if (!target) return;
     tower.target = target;
-    target.hp -= stats.beamDamage * dt;
+    damageMob(target, stats.beamDamage * dt, tower.ownerId);
     const origin = towerShotOrigin(tower);
     state.shots.push({
       x: origin.x,
@@ -4113,7 +4145,7 @@ function updateSoldiers(dt) {
 
     if (soldier.range && screenDistance <= soldier.range) {
       if (soldier.cooldown <= 0) {
-        target.hp -= soldierGunDamage(soldier.damage);
+        damageMob(target, soldierGunDamage(soldier.damage) * (target.boss ? 0.9 : 1), soldier.owner?.ownerId);
         soldier.cooldown = soldier.reload;
         state.shots.push({
           x: soldier.x + 21,
@@ -4159,12 +4191,13 @@ function resolveSoldierCollision(soldier, mob) {
     radius: 18,
   });
   sound.attack("melee");
-  if (soldier.hp >= mob.hp) {
+  const collisionDamage = soldier.hp * (mob.boss ? 0.9 : 1);
+  if (collisionDamage >= mob.hp) {
     soldier.hp -= mob.hp;
-    mob.hp = 0;
+    damageMob(mob, mob.hp, soldier.owner?.ownerId);
     return;
   }
-  mob.hp -= soldier.hp;
+  damageMob(mob, collisionDamage, soldier.owner?.ownerId);
   soldier.hp = 0;
 }
 
@@ -4264,32 +4297,30 @@ function mobPathProgress(mob) {
 }
 
 function calculateMobPathProgress(mob) {
-  const path = state.currentLevel.paths[mob.pathIndex];
-  let progress = 0;
-  for (let i = 1; i < mob.waypoint; i += 1) {
-    progress += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]);
-  }
-  if (mob.waypoint < path.length) {
-    progress += Math.hypot(mob.x - path[mob.waypoint - 1][0], mob.y - path[mob.waypoint - 1][1]);
-  }
-  return progress;
+  return IroncladSimulationRules.calculateMobPathProgress(mob, state.currentLevel.paths[mob.pathIndex]);
+}
+
+function damageMob(mob, amount, ownerId) {
+  IroncladSimulationRules.damageMob(mob, amount, ownerId);
 }
 
 function applyDamage(tower, target, stats) {
+  const damageType = TOWER_ATTACK_TYPES[tower.id]?.toLowerCase() || "kinetic";
+  const damageTo = (mob, amount, type = damageType) => damageMob(mob, amount * resistanceFactor(mob, type), tower.ownerId);
   const affected = stats.splash
     ? state.mobs.filter((mob) => Math.hypot(mob.x - target.x, mob.y - target.y) <= stats.splash)
     : [target];
 
   if (stats.splash) {
     affected.forEach((mob) => {
-      mob.hp -= stats.damage;
+      damageTo(mob, stats.damage);
     });
   } else {
-    target.hp -= stats.damage;
+    damageTo(target, stats.damage);
     if (stats.pierceHits > 1) {
       const pierceHits = tower.id === "rail" ? railPierceHits(tower, target, stats) : samePathPierceHits(target, stats);
       pierceHits.forEach(({ mob }, index) => {
-        mob.hp -= stats.damage * Math.max(0.55, 0.85 - index * 0.1);
+        damageTo(mob, stats.damage * Math.max(0.55, 0.85 - index * 0.1));
       });
     }
   }
@@ -4302,7 +4333,8 @@ function applyDamage(tower, target, stats) {
   }
   if (stats.poison || stats.burn) {
     affected.forEach((mob) => {
-      mob.dot += stats.poison || stats.burn;
+      mob.dot += (stats.poison || stats.burn) * resistanceFactor(mob, "elemental");
+      mob.dotOwnerId = tower.ownerId || null;
       if (stats.poison) mob.poisonTimer = Math.max(mob.poisonTimer || 0, 2.8);
       if (stats.burn) mob.burnTimer = Math.max(mob.burnTimer || 0, 2.4);
     });
@@ -4327,7 +4359,7 @@ function applyDamage(tower, target, stats) {
       const chainDamageScale = tower.id === "tesla"
         ? Math.max(0.12, 0.44 - index * 0.07)
         : Math.max(0.2, 0.4 - index * 0.05);
-      mob.hp -= stats.damage * chainDamageScale;
+      damageTo(mob, stats.damage * chainDamageScale);
       mob.shockTimer = Math.max(mob.shockTimer || 0, drawChainFx ? 0.24 : 0.1);
       mob.shockColor = shockColor;
       if (index < maxDrawnJumps && state.shots.length < MAX_ACTIVE_SHOTS && activeChainShots < MAX_ACTIVE_CHAIN_SHOTS) {
@@ -4416,6 +4448,7 @@ function draw() {
   state.mobs.forEach(drawMob);
   state.mobs.forEach(drawMobNameLabel);
   state.shots.forEach(drawShot);
+  drawHoveredMobInfo();
   drawLavaBlobs();
   drawBossWarning();
   drawTowerOwner();
@@ -4424,19 +4457,30 @@ function draw() {
 
 function drawTowerOwner() {
   const tower = state.hoveredTower;
-  if (!isMultiplayerGame() || !tower || !state.placed.includes(tower)) return;
-  const label = `Placed by ${towerOwnerName(tower.ownerId)}`;
+  if (!tower || !state.placed.includes(tower)) return;
+  const definition = towerById(tower.id);
+  const attackType = TOWER_ATTACK_TYPES[tower.id];
+  const lines = [attackType ? `${definition?.name || tower.id} · ${attackType}` : (definition?.name || tower.id)];
+  if (isMultiplayerGame()) lines.push(`Placed by ${towerOwnerName(tower.ownerId)}`);
   ctx.save();
   ctx.font = "bold 15px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const width = ctx.measureText(label).width + 20;
+  const width = Math.min(300, Math.max(...lines.map((line) => ctx.measureText(line).width)) + 20);
+  const height = lines.length * 21 + 8;
   const x = Math.max(width / 2 + 4, Math.min(canvas.width - width / 2 - 4, tower.x));
-  const y = Math.max(18, tower.y - 52);
+  const y = Math.max(height / 2 + 4, tower.y - 52);
   ctx.fillStyle = "rgba(12, 20, 28, 0.92)";
-  ctx.fillRect(x - width / 2, y - 13, width, 26);
-  ctx.fillStyle = "#fff";
-  ctx.fillText(label, x, y);
+  ctx.strokeStyle = "#71808b";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x - width / 2, y - height / 2, width, height, 6);
+  ctx.fill();
+  ctx.stroke();
+  lines.forEach((line, index) => {
+    ctx.fillStyle = index === 0 && attackType ? "#f0c65a" : "#fff";
+    ctx.fillText(line, x, y - (lines.length - 1) * 10.5 + index * 21, width - 12);
+  });
   ctx.restore();
 }
 
@@ -7203,6 +7247,34 @@ function drawMobNameLabel(mob) {
   ctx.restore();
 }
 
+function drawHoveredMobInfo() {
+  const mob = state.hoveredMob;
+  if (!mob || !state.mobs.includes(mob) || mob.hp <= 0) return;
+  const resistanceText = mobResistanceLabels({ name: mob.bossName || mob.monsterName }, mob.boss).join(", ") || "None";
+  const lines = [`HP: ${Math.max(0, Math.ceil(mob.hp))} / ${Math.ceil(mob.maxHp)}`, `Resists: ${resistanceText}`];
+  ctx.save();
+  ctx.font = "700 14px Arial, sans-serif";
+  const width = Math.min(270, Math.max(...lines.map((line) => ctx.measureText(line).width)) + 22);
+  const height = 50;
+  const x = Math.max(8, Math.min(canvas.width - width - 8, mob.x + 24));
+  const y = Math.max(8, Math.min(canvas.height - height - 8, mob.y - height - 18));
+  ctx.globalAlpha = 0.96;
+  ctx.fillStyle = "#10171deF";
+  ctx.strokeStyle = "#71808b";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#eef3f7";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(lines[0], x + 11, y + 16);
+  ctx.fillStyle = "#f0c65a";
+  ctx.fillText(lines[1], x + 11, y + 35, width - 22);
+  ctx.restore();
+}
+
 function drawMobStatusEffects(mob, size, eye) {
   const now = performance.now() / 1000;
   ctx.save();
@@ -8293,7 +8365,7 @@ function winLevel() {
   const rewardScale = stars === 3 ? 1 : stars === 2 ? 0.8 : 0.6;
   const gems = Math.max(1, Math.round(state.currentLevel.rewardGems * rewardScale));
   const coins = Math.max(1, Math.round(state.currentLevel.rewardGems * 12 * rewardScale));
-  const xp = Math.max(1, Math.round(state.currentLevel.rewardXp * rewardScale)) + state.earnedXp;
+  const xp = Math.max(1, Math.round(state.currentLevel.rewardXp * rewardScale + state.earnedXp));
   state.gems += gems;
   state.metaCoins += coins;
   state.clearedStages.add(state.currentLevel.id);
@@ -8316,7 +8388,7 @@ function loseLevel() {
   const waveProgress = state.currentLevel ? state.wave / state.currentLevel.waves : 0;
   const gems = Math.max(1, Math.floor(state.earnedGems * 0.45 + waveProgress * state.currentLevel.rewardGems * 0.12));
   const coins = Math.max(10, Math.floor(waveProgress * state.currentLevel.rewardGems * 7));
-  const xp = Math.max(10, Math.floor(state.earnedXp * 0.55 + waveProgress * state.currentLevel.rewardXp * 0.18));
+  const xp = Math.max(3, Math.floor(state.earnedXp * 0.55 + waveProgress * state.currentLevel.rewardXp * 0.18));
   state.gems += gems;
   state.metaCoins += coins;
   addXp(xp);
@@ -8443,6 +8515,7 @@ els.openMobIndex.onclick = () => {
   openModal(els.mobIndexModal);
 };
 els.closeMobIndex.onclick = () => closeModal(els.mobIndexModal);
+els.claimAllMobRewards.onclick = claimAllIndexRewards;
 els.mobIndexList.addEventListener("click", event => {
   const button = event.target.closest("button[data-reward-kind]");
   if (!button || button.disabled) return;
@@ -8577,9 +8650,11 @@ canvas.addEventListener("mousemove", (event) => {
   const x = (event.clientX - rect.left) / rect.width * canvas.width;
   const y = (event.clientY - rect.top) / rect.height * canvas.height;
   state.hoveredTower = state.placed.find((tower) => Math.hypot(tower.x - x, tower.y - y) < 25) || null;
+  state.hoveredMob = state.mobs.find((mob) => mob.hp > 0 && Math.hypot(mob.x - x, mob.y - y) < (mob.boss ? 28 : 20)) || null;
 });
 canvas.addEventListener("mouseleave", () => {
   state.hoveredTower = null;
+  state.hoveredMob = null;
   state.previewX = null;
   state.previewY = null;
 });

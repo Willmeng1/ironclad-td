@@ -3,10 +3,11 @@ import http from "node:http";
 import crypto from "node:crypto";
 import { Server } from "socket.io";
 import { createAccountStore, hashPassword, verifyPassword } from "./account-store.js";
+import { createSimulation, towerDefinition } from "./server-simulation.js";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { perMessageDeflate: { threshold: 1024 } });
 let accounts;
 try {
   accounts = await createAccountStore();
@@ -39,14 +40,14 @@ const rooms = new Map();
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(process.cwd(), { extensions: ["html"] }));
 
-const freshSave = (username) => ({ username, level: 1, xp: 0, gems: 35, metaCoins: 0, unlockedLevel: 1, towerLevels: {}, equipped: ["dart", "ice", "spark", "sniper", "venom"], discoveredMobs: [], daily: {} });
+const freshSave = (username) => ({ username, level: 1, xp: 0, gems: 0, metaCoins: 0, unlockedLevel: 1, towerLevels: {}, equipped: ["dart", "ice", "spark", "sniper", "venom"], discoveredMobs: [], daily: {} });
 const tokenFor = (username) => { const token = crypto.randomBytes(24).toString("hex"); sessions.set(token, username); return token; };
 const authUser = (req) => sessions.get((req.headers.authorization || "").replace(/^Bearer\s+/i, ""));
 
 app.post("/api/auth/signup", async (req, res) => {
   const username = String(req.body?.username || "").trim(); const password = String(req.body?.password || "");
   if (username.length < 3 || password.length < 4) return res.status(400).json({ error: "Username or password is too short." });
-  const save = { ...freshSave(username), ...(req.body?.saveData || {}), username };
+  const save = { ...freshSave(username), ...(req.body?.saveData || {}), username, gems: 0, metaCoins: 0 };
   const key = username.toLowerCase();
   try {
     if (!await accounts.create(key, { credential: hashPassword(password), save })) return res.status(409).json({ error: "That username is already taken." });
@@ -91,9 +92,10 @@ const profileFor = (socket, profile = {}) => ({
   highestStage: Math.min(15, Math.max(1, Math.floor(Number(profile.highestStage) || 1))),
   connected: true,
   reconnectToken: newToken(),
+  towerLevels: Object.fromEntries(Object.entries(profile.towerLevels || {}).filter(([id]) => TOWER_IDS.has(id)).map(([id, level]) => [id, Math.max(1, Math.min(10, Math.floor(Number(level) || 1)))])),
 });
 function snapshot(room) {
-  return { code: room.code, hostId: room.hostId, maxStage: Math.min(...[...room.players.values()].map((player) => player.highestStage)), players: [...room.players.values()].map(({ reconnectToken, timer, ...player }) => player) };
+  return { code: room.code, hostId: room.hostId, maxStage: Math.min(...[...room.players.values()].map((player) => player.highestStage)), players: [...room.players.values()].map(({ reconnectToken, timer, coins, ...player }) => player) };
 }
 function currentRoom(socket) { return rooms.get(socket.data.roomCode); }
 function sendRoom(room) { io.to(room.code).emit("room:update", snapshot(room)); }
@@ -103,18 +105,11 @@ function removePlayer(room, id) {
   if (!player) return;
   clearTimeout(player.timer);
   room.players.delete(id);
-  const towerIds = room.game?.towers.filter((tower) => tower.ownerId === id).map((tower) => tower.uid) || [];
-  if (room.game) room.game.towers = room.game.towers.filter((tower) => tower.ownerId !== id);
-  io.to(room.code).emit("towers:remove", { ownerId: id, towerIds });
   io.to(room.code).emit("player:left", { id });
   if (!room.players.size) { rooms.delete(room.code); return; }
   if (room.hostId === id) {
     room.hostId = connectedPlayers(room)[0]?.id || room.players.keys().next().value;
     io.to(room.code).emit("host:changed", { hostId: room.hostId, message: "A new host has been selected." });
-  }
-  if (room.game?.simOwnerId === id) {
-    room.game.simOwnerId = connectedPlayers(room)[0]?.id || null;
-    io.to(room.code).emit("sim:changed", { simOwnerId: room.game.simOwnerId });
   }
   sendRoom(room);
 }
@@ -147,71 +142,156 @@ io.on("connection", (socket) => {
     if (room.hostId === playerId) room.hostId = socket.id;
     if (room.game) {
       room.game.towers.forEach((tower) => { if (tower.ownerId === playerId) tower.ownerId = socket.id; });
-      if (!room.game.simOwnerId) room.game.simOwnerId = socket.id;
+      room.game.simulation.state.placed.forEach((tower) => { if (tower.ownerId === playerId) tower.ownerId = socket.id; });
+      room.game.simulation.state.mobs.forEach((mob) => {
+        if (mob.dotOwnerId === playerId) mob.dotOwnerId = socket.id;
+        if (mob.killOwnerId === playerId) mob.killOwnerId = socket.id;
+      });
     }
     socket.join(room.code); socket.data.roomCode = room.code;
-    socket.emit("room:reconnected", { oldPlayerId: playerId, newPlayerId: socket.id, room: snapshot(room), game: room.game, reconnectToken: player.reconnectToken });
+    socket.emit("room:reconnected", { oldPlayerId: playerId, newPlayerId: socket.id, room: snapshot(room), game: room.game, coins: player.coins, discoveries: room.game ? [...room.game.discoveries.values()] : [], reconnectToken: player.reconnectToken });
     socket.to(room.code).emit("player:reconnected", { oldPlayerId: playerId, newPlayerId: socket.id });
     sendRoom(room);
   });
   socket.on("room:startStage", ({ stageId } = {}) => {
     const room = currentRoom(socket); stageId = Number(stageId);
     if (!room || room.hostId !== socket.id || room.game || !Number.isInteger(stageId) || stageId < 1 || stageId > snapshot(room).maxStage) return socket.emit("room:error", "The host must choose an available stage.");
-    room.game = { stageId, simOwnerId: socket.id, towers: [], wave: 0, waveRunning: false };
+    const hostLevels = room.players.get(socket.id).towerLevels;
+    room.game = { stageId, simOwnerId: "server", towers: [], wave: 0, waveRunning: false, pendingWaveAt: 0, lastSnapshot: null };
+    const events = [];
+    const simulation = createSimulation(stageId, {
+      playerCount: room.players.size,
+      playerMeta: (_ownerId, towerId) => hostLevels[towerId] || 1,
+      emit: (name, data) => events.push({ name, data }),
+    });
+    room.players.forEach((player) => { player.coins = simulation.state.currentLevel.startCoins; });
+    Object.defineProperties(room.game, {
+      simulation: { value: simulation },
+      events: { value: events },
+      discoveries: { value: new Map() },
+      lastTick: { value: performance.now(), writable: true },
+      nextSnapshot: { value: 0, writable: true },
+    });
+    room.game.lastSnapshot = simulation.snapshot();
     io.to(room.code).emit("game:start", room.game);
   });
   socket.on("tower:place", ({ type, x, y } = {}) => {
     const room = currentRoom(socket); const player = room?.players.get(socket.id);
-    if (!room?.game || !player?.loadout.includes(type) || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1000 || y < 0 || y > 650 || room.game.towers.filter((tower) => tower.ownerId === socket.id).length >= 15 || room.game.towers.some((tower) => Math.hypot(tower.x - x, tower.y - y) < 38)) return;
+    const definition = towerDefinition(type);
+    if (!room?.game || !definition || !player?.loadout.includes(type) || player.coins < definition.cost || !Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 1000 || y < 0 || y > 650 || room.game.towers.filter((tower) => tower.ownerId === socket.id).length >= 15 || room.game.towers.some((tower) => Math.hypot(tower.x - x, tower.y - y) < 38)) return;
+    player.coins -= definition.cost;
     const tower = { uid: crypto.randomUUID(), type, x, y, level: 1, ownerId: socket.id };
-    room.game.towers.push(tower); io.to(room.code).emit("tower:placed", tower);
+    room.game.towers.push(tower);
+    room.game.simulation.placeTower(tower);
+    io.to(room.code).emit("tower:placed", tower);
   });
   socket.on("tower:upgrade", ({ uid } = {}) => {
     const room = currentRoom(socket); const tower = room?.game?.towers.find((item) => item.uid === uid && item.ownerId === socket.id);
     if (!tower || tower.level >= 5) return;
-    tower.level += 1; io.to(room.code).emit("tower:upgraded", { uid });
+    const player = room.players.get(socket.id);
+    const definition = towerDefinition(tower.type);
+    const baseCost = definition.cost * (1.05 + tower.level * 0.9);
+    const cost = Math.floor(tower.type === "barracks" ? baseCost * 0.84 : tower.type === "bank" ? baseCost * 1.22 : baseCost);
+    if (player.coins < cost) return;
+    player.coins -= cost;
+    tower.level += 1;
+    const simulated = room.game.simulation.state.placed.find((item) => item.uid === uid);
+    if (simulated) simulated.level = tower.level;
+    io.to(room.code).emit("tower:upgraded", { uid });
   });
   socket.on("tower:sell", ({ uid } = {}) => {
     const room = currentRoom(socket); const tower = room?.game?.towers.find((item) => item.uid === uid && item.ownerId === socket.id);
     if (!tower) return;
+    room.players.get(socket.id).coins += Math.floor(towerDefinition(tower.type).cost * (0.48 + tower.level * 0.2));
     room.game.towers = room.game.towers.filter((item) => item !== tower); io.to(room.code).emit("tower:sold", { uid });
+    const simulated = room.game.simulation.state.placed.find((item) => item.uid === uid);
+    room.game.simulation.state.placed = room.game.simulation.state.placed.filter((item) => item !== simulated);
+    room.game.simulation.state.soldiers = room.game.simulation.state.soldiers.filter((soldier) => soldier.owner !== simulated);
   });
   socket.on("wave:start", () => {
-    const room = currentRoom(socket); if (!room?.game || room.game.waveRunning || !room.game.simOwnerId) return;
+    const room = currentRoom(socket); if (!room?.game || room.game.waveRunning || room.game.simulation.state.ended || room.game.wave >= room.game.simulation.state.currentLevel.waves) return;
     room.game.waveRunning = true; room.game.wave += 1;
-    io.to(room.code).emit("wave:start", { wave: room.game.wave, startsAt: Date.now() + 800 });
-  });
-  socket.on("wave:end", ({ wave } = {}) => {
-    const room = currentRoom(socket); if (!room?.game || room.game.simOwnerId !== socket.id || wave !== room.game.wave) return;
-    room.game.waveRunning = false;
-    socket.to(room.code).emit("wave:ended", { wave });
-  });
-  socket.on("mobs:sync", (data) => {
-    const room = currentRoom(socket); if (!room?.game || room.game.simOwnerId !== socket.id || !data || typeof data !== "object") return;
-    room.game.lastSnapshot = data; socket.to(room.code).emit("mobs:sync", data);
-  });
-  socket.on("coins:reward", (data) => { const room = currentRoom(socket); if (room?.game?.simOwnerId === socket.id) socket.to(room.code).emit("coins:reward", data); });
-  socket.on("room:notice", (data) => { const room = currentRoom(socket); if (room?.game?.simOwnerId === socket.id) socket.to(room.code).emit("room:notice", data); });
-  socket.on("game:end", ({ result } = {}) => {
-    const room = currentRoom(socket); if (!room?.game || room.game.simOwnerId !== socket.id || !["won", "lost"].includes(result)) return;
-    socket.to(room.code).emit("game:result", { result });
-    io.to(room.code).emit("room:closed", { result });
-    for (const player of room.players.values()) { clearTimeout(player.timer); const peer = io.sockets.sockets.get(player.id); if (peer) { peer.data.roomCode = null; peer.leave(room.code); } }
-    rooms.delete(room.code);
+    room.game.pendingWaveAt = Date.now() + 800;
+    io.to(room.code).emit("wave:start", { wave: room.game.wave, startsAt: room.game.pendingWaveAt });
   });
   socket.on("room:leave", () => { const room = currentRoom(socket); if (!room) return; socket.leave(room.code); socket.data.roomCode = null; removePlayer(room, socket.id); });
   socket.on("disconnect", () => {
     const room = currentRoom(socket); const player = room?.players.get(socket.id); if (!player) return;
     player.connected = false;
-    if (room.game?.simOwnerId === socket.id) {
-      room.game.simOwnerId = connectedPlayers(room)[0]?.id || null;
-      if (room.game.simOwnerId) io.to(room.code).emit("sim:changed", { simOwnerId: room.game.simOwnerId });
-    }
     player.timer = setTimeout(() => removePlayer(room, player.id), RECONNECT_MS);
     sendRoom(room);
   });
 });
 
+setInterval(() => {
+  const now = performance.now();
+  for (const room of rooms.values()) {
+    const game = room.game;
+    if (!game?.simulation) continue;
+    let elapsed = Math.min(0.25, Math.max(0, (now - game.lastTick) / 1000));
+    game.lastTick = now;
+    if (game.pendingWaveAt && Date.now() >= game.pendingWaveAt) {
+      game.pendingWaveAt = 0;
+      game.simulation.state.playerCount = room.players.size;
+      game.simulation.startWave();
+      if (game.simulation.state.wave === game.simulation.state.currentLevel.waves) {
+        const boss = game.simulation.state.spawns.find((spawn) => spawn.boss);
+        if (boss) {
+          const message = game.simulation.state.currentLevel.paths.length > 1
+            ? `${boss.bossName} is coming - Lane ${boss.pathIndex + 1}`
+            : `${boss.bossName} is coming`;
+          io.to(room.code).emit("room:notice", { message, kind: "boss" });
+        }
+      }
+    }
+    while (elapsed > 0) {
+      const dt = Math.min(0.05, elapsed);
+      game.simulation.step(dt);
+      elapsed -= dt;
+    }
+    if (now >= game.nextSnapshot || game.events.length) {
+      game.lastSnapshot = game.simulation.snapshot();
+      game.nextSnapshot = now + 40;
+      io.to(room.code).emit("mobs:sync", game.lastSnapshot);
+    }
+    for (const event of game.events.splice(0)) {
+      if (event.name === "kill") {
+        if (event.data.ownerId && room.players.has(event.data.ownerId)) {
+          room.players.get(event.data.ownerId).coins += event.data.amount;
+          io.to(event.data.ownerId).emit("coins:reward", { amount: event.data.amount, kind: "kill" });
+        }
+        const discovery = { boss: event.data.mob.boss, bossName: event.data.mob.bossName, monsterName: event.data.mob.monsterName };
+        const discoveryKey = discovery.boss ? discovery.bossName : discovery.monsterName;
+        if (discoveryKey && !game.discoveries.has(discoveryKey)) {
+          game.discoveries.set(discoveryKey, discovery);
+          io.to(room.code).emit("mob:discovered", discovery);
+        }
+      } else if (event.name === "income") {
+        if (event.data.ownerId && room.players.has(event.data.ownerId)) {
+          room.players.get(event.data.ownerId).coins += event.data.amount;
+          io.to(event.data.ownerId).emit("coins:reward", { amount: event.data.amount, kind: "income" });
+        }
+      } else if (event.name === "waveEnd") {
+        game.waveRunning = false;
+        room.players.forEach((player) => { player.coins += event.data.bonus; });
+        io.to(room.code).emit("wave:ended", { wave: event.data.wave });
+        io.to(room.code).emit("coins:reward", { amount: event.data.bonus, kind: "waveBonus" });
+      } else if (event.name === "result") {
+        io.to(room.code).emit("game:result", event.data);
+        io.to(room.code).emit("room:closed", event.data);
+        for (const player of room.players.values()) {
+          clearTimeout(player.timer);
+          const peer = io.sockets.sockets.get(player.id);
+          if (peer) { peer.data.roomCode = null; peer.leave(room.code); }
+        }
+        rooms.delete(room.code);
+      }
+    }
+  }
+}, 20).unref();
+
 
 const port = Number(process.env.PORT || 3002);
 server.listen(port, "0.0.0.0", () => console.log(`Server is running on port ${port}`));
+
+export { server, rooms };
